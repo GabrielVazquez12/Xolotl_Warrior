@@ -1,6 +1,6 @@
 # Xolotl Warrior 👻
 
-> **Xolotl Warrior** is an indie action game built for the HackaTec video game design challenge. Guide a brave little ghost with a warrior's spirit through a mysterious adventure.
+> **Xolotl Warrior** is an indie action game built for the Hackathon Kiro + Codigo Facilito video game design challenge. Guide a brave little ghost with a warrior's spirit through a mysterious adventure.
 
 ## 🎮 Overview
 
