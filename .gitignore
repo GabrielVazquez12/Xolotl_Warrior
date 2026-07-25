@@ -1,0 +1,12 @@
+# Configuración local de herramientas y editores
+.claude/
+.vscode/
+.idea/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Dependencias y builds (por si más adelante hacen falta)
+node_modules/
+dist/
