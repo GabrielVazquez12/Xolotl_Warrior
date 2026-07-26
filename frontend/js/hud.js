@@ -93,7 +93,11 @@ export function setupHUD(hpNucleoMax, hpJugadorMax) {
     mostrar();
 
     // 4. El cronometro corre solo mientras dure la escena
+    // 4. El cronometro corre solo mientras dure la escena
     onUpdate(() => {
+        // --- CANDADO DE PAUSA ---
+        if (window.juegoPausado) return;
+
         tiempo += dt();
         elTiempo.innerText = formatearTiempo(tiempo);
 

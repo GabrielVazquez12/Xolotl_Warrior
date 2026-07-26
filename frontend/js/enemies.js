@@ -69,6 +69,7 @@ export function setupEnemies(nucleo, hud) {
             fixed()
         ]);
 
+        // Animación de parpadeo de la alerta
         alerta.onUpdate(() => {
             alerta.opacity = wave(0, 1, time() * 15);
         });
@@ -78,6 +79,9 @@ export function setupEnemies(nucleo, hud) {
     let segundosJugados = 0;
     
     loop(1, () => {
+        // ¡Si está pausado, el tiempo no avanza y no tira alertas!
+        if (window.juegoPausado) return; 
+
         segundosJugados++;
         if (segundosJugados === 30) hud.avisarOleada("Fin del calentamiento. ¡Cuidado arriba!");
         if (segundosJugados === 60) hud.avisarOleada("¡Los enemigos están mutando! (Tier 2)");
@@ -85,13 +89,6 @@ export function setupEnemies(nucleo, hud) {
     });
 
     function planearProximoSpawn() {
-        // --- LA MAGIA DEL BOSS ARENA ---
-        // Si hay un Jefe vivo, paramos la aparición de secuaces menores
-        if (get("boss").length > 0) {
-            wait(2, () => planearProximoSpawn());
-            return; 
-        }
-
         let tiempoEspera = 2.5; 
 
         if (segundosJugados >= 30) tiempoEspera = 1.8; 
@@ -101,6 +98,19 @@ export function setupEnemies(nucleo, hud) {
         tiempoEspera += rand(-0.2, 0.3);
 
         wait(tiempoEspera, () => {
+            // --- CANDADO DE PAUSA ---
+            // Si el usuario pausó el juego, ignoramos este spawn y volvemos a planear
+            if (window.juegoPausado) {
+                planearProximoSpawn();
+                return;
+            }
+
+            // --- LA MAGIA DEL BOSS ARENA ---
+            if (get("boss").length > 0) {
+                wait(2, () => planearProximoSpawn());
+                return; 
+            }
+
             const permiteAereos = segundosJugados >= 30;
             const permiteTier2 = segundosJugados >= 60;
             const esJefe = (segundosJugados % 50 >= 0 && segundosJugados % 50 <= 2) && segundosJugados > 30; 
@@ -112,11 +122,13 @@ export function setupEnemies(nucleo, hud) {
             if (permiteTier2 && chance(0.3)) tierElegido = 2;
             if (esJefe) tierElegido = 3;
 
-            // Mostramos alerta solo para enemigos voladores o jefes terrestres
             if (isAerial || tierElegido === 3) {
                 mostrarAlerta(saleDeIzquierda, isAerial);
                 
                 wait(1, () => {
+                    // Verificamos de nuevo por si pausaron durante el segundo de suspenso de la alerta
+                    if (window.juegoPausado) return;
+                    
                     isAerial ? spawnAereo(tierElegido, saleDeIzquierda) : spawnTerrestre(tierElegido, saleDeIzquierda);
                 });
             } else {
@@ -131,6 +143,9 @@ export function setupEnemies(nucleo, hud) {
 
     // --- 5. IA DE MOVIMIENTO Y PATRONES ---
     onUpdate("enemy", (e) => {
+        // Si el juego está pausado globalmente, la IA se congela en seco
+        if (window.juegoPausado) return; 
+
         // Ignora el movimiento si apenas está naciendo o si acaba de recibir un espadazo
         if (e.isSpawning || e.isKnockedBack) return; 
         

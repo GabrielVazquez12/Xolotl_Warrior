@@ -40,7 +40,7 @@ scene("menu", () => {
 
     // 3. EL XÓLOTL FLOTANTE
     const xolotlMenu = add([
-        sprite("xolotl", { anim: "idle" }),
+        sprite("xolotl"),
         pos(centroX, centroY - 150),
         scale(1.5),
         anchor("center")
@@ -149,6 +149,58 @@ scene("game", () => {
         rect(60, 80), pos(width() / 2, height() - ALTO_PISO), anchor("bot"), 
         area(), color(255, 215, 0), "nucleo", { hp: 5 }
     ]);
+    /// --- SISTEMA DE PAUSA ---
+    let pausado = false;
+
+    onKeyPress("escape", () => {
+        pausado = !pausado;
+        window.juegoPausado = pausado;
+        if (pausado) {
+            // 1. Capa oscura semitransparente para oscurecer el fondo
+            add([
+                rect(width(), height()),
+                pos(0, 0),
+                color(0, 0, 0),
+                opacity(0.6),
+                fixed(),
+                z(100), // <--- CAMBIADO DE zIndex A z
+                "pause-ui"
+            ]);
+
+            // 2. Título de Pausa
+            add([
+                text("JUEGO PAUSADO", { size: 48 }),
+                pos(width() / 2, height() / 2 - 40),
+                anchor("center"),
+                color(255, 215, 0),
+                fixed(),
+                z(101), // <--- CAMBIADO DE zIndex A z
+                "pause-ui"
+            ]);
+
+            // 3. Instrucción de salida
+            add([
+                text("Presiona ESC para continuar\nPresiona M para volver al Menú", { size: 20, align: "center" }),
+                pos(width() / 2, height() / 2 + 30),
+                anchor("center"),
+                color(255, 255, 255),
+                fixed(),
+                z(101), // <--- CAMBIADO DE zIndex A z
+                "pause-ui"
+            ]);
+
+        } else {
+            // Si despausamos, borramos todos los elementos visuales de la pausa
+            destroyAll("pause-ui");
+        }
+    });
+
+    // Si presionan 'M' estando en pausa, regresan al menú principal
+    onKeyPress("m", () => {
+        if (pausado) {
+            go("menu");
+        }
+    });
 
     // 2. LÓGICAS EXTERNAS
     const player = setupPlayer();

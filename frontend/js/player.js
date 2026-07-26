@@ -20,18 +20,14 @@ export function setupPlayer() {
             isFlying: false,
             isDashing: false,
             
-            // Función personalizada para cuando recibe golpe
             recibirDanio() {
                 this.play("hit");
             },
 
-            // Función personalizada para cuando muere
             morir(callbackTerminar) {
                 this.play("death");
-                // Congelamos controles y gravedad un momento para que luzca la animación de muerte
                 this.unuse("body");
-                this.isDashing = true; // Bloquea acciones
-                // Esperamos a que termine la animación de muerte antes de ir al Game Over
+                this.isDashing = true;
                 wait(0.5, () => {
                     callbackTerminar();
                 });
@@ -47,14 +43,27 @@ export function setupPlayer() {
         }
     }
 
-    // Movimiento
-    onKeyDown("left", () => { player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer(); });
-    onKeyDown("a", () => { player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer(); });
+    // Movimiento con candado de pausa
+    onKeyDown("left", () => {
+        if (window.juegoPausado) return;
+        player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer();
+    });
+    onKeyDown("a", () => {
+        if (window.juegoPausado) return;
+        player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer();
+    });
     
-    onKeyDown("right", () => { player.move(getVelocidadActual(), 0); player.direccion = 1; player.flipX = false; iniciarAnimacionCorrer(); });
-    onKeyDown("d", () => { player.move(getVelocidadActual(), 0); player.direccion = 1; player.flipX = false; iniciarAnimacionCorrer(); });
+    onKeyDown("right", () => {
+        if (window.juegoPausado) return;
+        player.move(getVelocidadActual(), 0); player.direccion = 1; player.flipX = false; iniciarAnimacionCorrer();
+    });
+    onKeyDown("d", () => {
+        if (window.juegoPausado) return;
+        player.move(getVelocidadActual(), 0); player.direccion = 1; player.flipX = false; iniciarAnimacionCorrer();
+    });
 
     onKeyRelease(["left", "right", "a", "d"], () => {
+        if (window.juegoPausado) return;
         if (!isKeyDown("left") && !isKeyDown("right") && !isKeyDown("a") && !isKeyDown("d")) {
             if (player.curAnim() !== "melee" && player.curAnim() !== "shoot" && player.curAnim() !== "hit") {
                 player.play("idle");
@@ -62,13 +71,14 @@ export function setupPlayer() {
         }
     });
 
-    // Vuelo 
-    onKeyDown("up", () => { if (player.isFlying) player.move(0, -getVelocidadActual()); });
-    onKeyDown("w", () => { if (player.isFlying) player.move(0, -getVelocidadActual()); });
-    onKeyDown("down", () => { if (player.isFlying) player.move(0, getVelocidadActual()); });
-    onKeyDown("s", () => { if (player.isFlying) player.move(0, getVelocidadActual()); });
+    // Vuelo con candado de pausa
+    onKeyDown("up", () => { if (window.juegoPausado) return; if (player.isFlying) player.move(0, -getVelocidadActual()); });
+    onKeyDown("w", () => { if (window.juegoPausado) return; if (player.isFlying) player.move(0, -getVelocidadActual()); });
+    onKeyDown("down", () => { if (window.juegoPausado) return; if (player.isFlying) player.move(0, getVelocidadActual()); });
+    onKeyDown("s", () => { if (window.juegoPausado) return; if (player.isFlying) player.move(0, getVelocidadActual()); });
 
     onKeyPress("space", () => {
+        if (window.juegoPausado) return;
         if (player.isGrounded()) {
             player.jump(700);
         } else if (!player.isFlying) {
@@ -83,16 +93,20 @@ export function setupPlayer() {
         player.gravityScale = 1;
     });
 
-    // Dash Espectral
+    // Dash Espectral con candado de pausa
     let puedeDashear = true;
     onKeyPress("q", () => {
+        if (window.juegoPausado) return;
         if (!puedeDashear || player.isDashing) return;
         puedeDashear = false;
         player.isDashing = true;
         player.opacity = 0.5; 
         
         const impulso = player.direccion === 1 ? VEL_DASH : -VEL_DASH;
-        const dashAnim = onUpdate(() => { player.move(impulso, 0); });
+        const dashAnim = onUpdate(() => {
+            if (window.juegoPausado) return;
+            player.move(impulso, 0);
+        });
 
         wait(0.2, () => {
             dashAnim.cancel();
@@ -103,10 +117,11 @@ export function setupPlayer() {
         wait(1, () => { puedeDashear = true; }); 
     });
 
-    // Combate
+    // Combate con candado de pausa
     function resetAttack() { wait(COOLDOWN_ATAQUE, () => { player.canAttack = true; }); }
 
     onKeyPress("j", () => {
+        if (window.juegoPausado) return;
         if (!player.canAttack || player.isDashing) return;
         player.canAttack = false;
         player.play("melee");
@@ -117,6 +132,7 @@ export function setupPlayer() {
     });
 
     onKeyPress("k", () => {
+        if (window.juegoPausado) return;
         if (!player.canAttack || player.isDashing) return;
         player.canAttack = false;
         player.play("shoot");
@@ -125,7 +141,6 @@ export function setupPlayer() {
         resetAttack();
     });
 
-    // Regresar a idle al terminar ataques o golpes
     player.onAnimEnd((anim) => {
         if (anim === "melee" || anim === "shoot" || anim === "hit") {
             player.play("idle");
@@ -133,6 +148,7 @@ export function setupPlayer() {
     });
 
     onUpdate(() => {
+        if (window.juegoPausado) return;
         if (player.pos.x < 20) player.pos.x = 20;
         if (player.pos.x > width() - 20) player.pos.x = width() - 20;
         if (player.pos.y < 20) player.pos.y = 20;
