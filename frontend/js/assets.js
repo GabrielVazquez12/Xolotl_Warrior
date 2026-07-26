@@ -1,38 +1,18 @@
 export function loadGameAssets() {
     // ==========================================
-    //  TODO: REEMPLAZAR POR ARTE FINAL (.png)
+    //  HOJA DE SPRITES COMPLETA (6x6)
     // ==========================================
-    const canvas = document.createElement('canvas');
-    canvas.width = 128; 
-    canvas.height = 32;
-    const ctx = canvas.getContext('2d');
-
-    function dibujarFantasma(x, offset, inclinacion) {
-        ctx.fillStyle = '#00ffff';
-        ctx.beginPath();
-        ctx.arc(x + 16 + inclinacion, 12 + offset, 10, Math.PI, 0);
-        ctx.lineTo(x + 26, 26 + offset); ctx.lineTo(x + 21, 23 + offset); 
-        ctx.lineTo(x + 16, 26 + offset); ctx.lineTo(x + 11, 23 + offset); 
-        ctx.lineTo(x + 6, 26 + offset); ctx.lineTo(x + 6 + inclinacion, 12 + offset);
-        ctx.fill();
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(x + 11 + inclinacion, 9 + offset, 3, 3);
-        ctx.fillRect(x + 18 + inclinacion, 9 + offset, 3, 3);
-    }
-
-    dibujarFantasma(0, 0, 0);     
-    dibujarFantasma(32, 2, 0);    
-    dibujarFantasma(64, 0, 4);    
-    dibujarFantasma(96, 2, 4);    
-    const imagenFantasma = canvas.toDataURL();
-
-    loadSprite("guardian", imagenFantasma, {
-        sliceX: 4, sliceY: 1, 
+    loadSprite("fondo", "assets/sprites/fondo.png");
+    loadSprite("xolotl", "assets/sprites/xolotl_sheet.png", {
+        sliceX: 6,
+        sliceY: 6,
         anims: {
-            "idle": { from: 0, to: 1, loop: true, speed: 4 },
-            "correr": { from: 2, to: 3, loop: true, speed: 12 }
-        }
+            idle: { from: 0, to: 5, loop: true, speed: 8 },
+            walk: { from: 6, to: 11, loop: true, speed: 12 },
+            melee: { from: 12, to: 17, loop: false, speed: 20 },
+            shoot: { from: 18, to: 23, loop: false, speed: 15 },
+            hit: { from: 24, to: 27, loop: false, speed: 12 },
+            death: { from: 30, to: 32, loop: false, speed: 10 }, 
+        },
     });
-    // Aquí cargarán a los enemigos y fondos después
-    // loadSprite("zombie", "assets/zombie.png");
 }

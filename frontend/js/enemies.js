@@ -2,7 +2,8 @@ const VEL_ENEMIGO = 130;
 const ALTO_PISO = 60;
 const ZONA_SEGURA = 200;
 
-export function setupEnemies(nucleo) {
+// Recibe el hud para poder avisar en pantalla cuando la cosa se pone mas dificil.
+export function setupEnemies(nucleo, hud) {
     function spawnEnemy() {
         const isAerial = chance(0.5); 
 
@@ -39,6 +40,7 @@ export function setupEnemies(nucleo) {
             tiempoAparicion -= 0.15; 
             temporizadorEnemigos.cancel();
             temporizadorEnemigos = loop(tiempoAparicion, () => { spawnEnemy(); });
+            hud.avisarOleada("Oleada mas rapida"); // que se note que el juego aprieta
         }
     });
 
