@@ -120,7 +120,7 @@ scene("menu", () => {
     ]);
 
     add([
-        text("HackaTec 2026 - Carlos Vázquez & Alejandro Puente", { size: 16 }),
+        text("HackaTec 2026", { size: 16 }),
         pos(centroX, height() - 30),
         anchor("center"),
         color(100, 200, 255),
@@ -417,17 +417,82 @@ scene("game", () => {
 });
 
 // ===============================================================
-// ESCENA: GAME OVER
+// ESCENA: GAME OVER & LEADERBOARD (BACKEND INTEGRATION)
 // ===============================================================
 scene("gameover", (resumen) => {
     const centroX = width() / 2;
     const centroY = height() / 2;
 
-    add([ text("FIN DEL JUEGO", { size: 48 }), pos(centroX, centroY - 110), anchor("center"), color(255, 50, 50) ]);
-    add([ text(`Tiempo: ${resumen.tiempo}    Enemigos: ${resumen.enemigos}`, { size: 22 }), pos(centroX, centroY - 45), anchor("center"), color(180, 180, 180) ]);
-    add([ text(`PUNTOS: ${resumen.puntos}`, { size: 36 }), pos(centroX, centroY), anchor("center"), color(255, 215, 0) ]);
-    add([ text(resumen.esRecord ? "NUEVO RECORD!" : `Record: ${resumen.record}`, { size: 22 }), pos(centroX, centroY + 45), anchor("center"), color(resumen.esRecord ? rgb(0, 255, 255) : rgb(180, 180, 180)) ]);
-    add([ text("Presiona R para reiniciar", { size: 24 }), pos(centroX, centroY + 110), anchor("center") ]);
+    add([ text("FIN DEL JUEGO", { size: 48 }), pos(centroX, centroY - 180), anchor("center"), color(255, 50, 50) ]);
+    add([ text(`Tiempo: ${resumen.tiempo}    Enemigos: ${resumen.enemigos}`, { size: 20 }), pos(centroX, centroY - 120), anchor("center"), color(180, 180, 180) ]);
+    add([ text(`PUNTOS: ${resumen.puntos}`, { size: 32 }), pos(centroX, centroY - 80), anchor("center"), color(255, 215, 0) ]);
+
+    // Input visual para iniciales estilo arcade
+    let iniciales = "AAA";
+    let indiceActual = 0;
+    const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    const txtIniciales = add([
+        text(`REGISTRAR INICIALES: [ ${iniciales} ]`, { size: 24 }),
+        pos(centroX, centroY - 30),
+        anchor("center"),
+        color(0, 255, 255)
+    ]);
+
+    add([ text("Usa ARRIBA/ABAJO para cambiar letra, IZQ/DER para mover, ENTER para guardar", { size: 14 }), pos(centroX, centroY + 10), anchor("center"), color(150, 150, 150) ]);
+
+    // Control de selección de iniciales
+    onKeyPress("up", () => {
+        let charCode = iniciales.charCodeAt(indiceActual);
+        let indexLetra = letras.indexOf(String.fromCharCode(charCode));
+        indexLetra = (indexLetra + 1) % letras.length;
+        iniciales = iniciales.substring(0, indiceActual) + letras[indexLetra] + iniciales.substring(indiceActual + 1);
+        txtIniciales.text = `REGISTRAR INICIALES: [ ${iniciales} ]`;
+    });
+
+    onKeyPress("down", () => {
+        let charCode = iniciales.charCodeAt(indiceActual);
+        let indexLetra = letras.indexOf(String.fromCharCode(charCode));
+        indexLetra = (indexLetra - 1 + letras.length) % letras.length;
+        iniciales = iniciales.substring(0, indiceActual) + letras[indexLetra] + iniciales.substring(indiceActual + 1);
+        txtIniciales.text = `REGISTRAR INICIALES: [ ${iniciales} ]`;
+    });
+
+    onKeyPress("right", () => {
+        indiceActual = (indiceActual + 1) % 3;
+    });
+
+    onKeyPress("left", () => {
+        indiceActual = (indiceActual - 1 + 3) % 3;
+    });
+
+    let scoreGuardado = false;
+
+    // Al presionar ENTER se envía el score al servidor backend de Node.js
+    onKeyPress("enter", async () => {
+        if (scoreGuardado) return;
+        scoreGuardado = true;
+
+        try {
+            await fetch("https://k572xn1fxj.execute-api.us-east-2.amazonaws.com/default/XolotlApi", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nombre: iniciales,
+                    puntos: resumen.puntos,
+                    tiempo: resumen.tiempo
+                })
+            });
+            txtIniciales.text = "¡GUARDADO EN EL BACKEND! (Presiona R para reiniciar)";
+            txtIniciales.color = rgb(0, 255, 120);
+        } catch (error) {
+            console.error("Error al conectar con el backend:", error);
+            txtIniciales.text = "ERROR DE CONEXIÓN CON EL SERVIDOR";
+            txtIniciales.color = rgb(255, 0, 0);
+        }
+    });
+
+    add([ text("Presiona R para reiniciar la partida", { size: 20 }), pos(centroX, height() - 50), anchor("center"), color(255, 255, 255) ]);
 
     onKeyPress("r", () => go("game"));
 });

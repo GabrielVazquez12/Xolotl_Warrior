@@ -10,3 +10,6 @@ Thumbs.db
 # Dependencias y builds (por si más adelante hacen falta)
 node_modules/
 dist/
+
+# Bases de datos locales
+scores.json
