@@ -15,4 +15,26 @@ export function loadGameAssets() {
             death: { from: 30, to: 32, loop: false, speed: 10 }, 
         },
     });
+    // Aquí cargarán a los enemigos y fondos después
+    // loadSprite("zombie", "assets/zombie.png");
+
+
+    // ===========================
+    // Música
+    // ===========================
+
+    loadSound("gameMusic", "assets/music/gameplay.mp3");
+    loadSound("gameOverMusic", "assets/music/gameover.mp3");
+
+    // ===========================
+    // Efectos
+    // ===========================
+
+    loadSound("sword", "assets/sounds/sword.wav");
+    loadSound("laserSound", "assets/sounds/laser.wav");
+    loadSound("dash", "assets/sounds/dash.wav");
+    loadSound("enemyHit", "assets/sounds/enemy_hit.wav");
+    loadSound("enemyDie", "assets/sounds/enemy_die.wav");
+    loadSound("playerHit", "assets/sounds/player_hit.wav");
+    loadSound("gameOver", "assets/sounds/gameover.wav");
 }
