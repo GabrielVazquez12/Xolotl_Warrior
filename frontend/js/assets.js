@@ -2,6 +2,7 @@ export function loadGameAssets() {
     // ==========================================
     //  HOJA DE SPRITES COMPLETA (6x6)
     // ==========================================
+    loadSprite("fondo", "assets/sprites/fondo.png");
     loadSprite("xolotl", "assets/sprites/xolotl_sheet.png", {
         sliceX: 6,
         sliceY: 6,
