@@ -1,84 +1,44 @@
-# HUD
+# Interfaz de Usuario (HUD) y Gestión del DOM
 
-Interfaz que se dibuja **encima** del canvas del juego: vidas, tiempo, puntaje y
-avisos. Vive en `frontend/js/hud.js` y es el único archivo del proyecto que toca el
-DOM de la interfaz — el resto del juego nunca llama a `document.getElementById`.
+## 🖥️ Arquitectura de la Interfaz
+El HUD se dibuja de forma independiente en una capa superpuesta al canvas del juego. Su lógica reside exclusivamente en `frontend/js/hud.js`, constituyendo **el único punto del proyecto autorizado para manipular el DOM** (`document.getElementById`). Ninguna otra entidad del juego interactúa directamente con los elementos HTML de la interfaz.
 
-## Qué muestra
+## 📐 Distribución de Zonas (`#hud`)
+| Zona del DOM | Componente Visual | Descripción Técnica |
+|---|---|---|
+| Superior Izquierda | Trazador de Control | Contenedor estático con metadatos de accesos directos y branding. |
+| Superior Central | Métricas de Partida | Indicadores en tiempo real del cronómetro de supervivencia, puntaje actual y récord histórico. |
+| Superior Derecha | Vidades Sanitarias | Renderizado textual de corazones dorados para el Núcleo y cian para Xolotl. |
+| Centro Dinámico | Sistema de Alertas | Emisión temporal de notificaciones tácticas sobre escalados de dificultad o eventos. |
 
-| Zona | Qué hay |
-|---|---|
-| Arriba a la izquierda | Título y controles (`#ui-layer`, ya existía) |
-| Arriba al centro | Tiempo sobrevivido, puntos y récord |
-| Arriba a la derecha | Corazones del Núcleo (dorados) y de Xolotl (cyan) |
-| Al centro | Aviso pasajero, p. ej. cuando sube la dificultad |
+*Nota de rendimiento:* Las vidas se representan mediante caracteres tipográficos dinámicos (`♥` para estados activos, `♡` para estados críticos), eliminando la sobrecarga de renderizado de texturas adicionales.
 
-Las vidas se dibujan con corazones de texto: los que te quedan salen llenos (`♥`) y
-los que perdiste vacíos (`♡`), así se ve el daño de un vistazo y no hace falta
-cargar ninguna imagen.
+## 🧮 Algoritmo de Puntuación
+Al tratarse de un entorno de supervivencia infinita, el rendimiento se cuantifica mediante una función lineal acumulativa:
+*   **1 punto por segundo** de supervivencia activa.
+*   **10 puntos** por neutralización confirmada de unidades terrestres (`minion` / `zombie`).
+*   **15 puntos** por neutralización de unidades aéreas (*skill shot* debido a su movilidad multidimensional).
 
-## Cómo se calcula el puntaje
+*Restricción de Bajas:* Únicamente otorgan puntuación las entidades destruidas de forma directa por el jugador mediante melé o proyectiles a distancia. Las colisiones directas de enemigos contra el Núcleo o el avatar provocan daño al jugador pero se descartan del cómputo de puntaje.
 
-El juego es de supervivencia infinita: no hay meta ni cuenta regresiva, se juega
-hasta que el Núcleo o Xolotl se quedan sin vida. El puntaje mide qué tan lejos
-llegaste:
+## 💾 Mecánica de Persistencia del Récord
+El puntaje máximo histórico se sincroniza de forma segura con el almacenamiento local del cliente (`localStorage`, clave `xolotl_record`). En arquitecturas con restricciones de seguridad de sesión (navegación en modo incógnito o bloqueo de permisos), el sistema degrada de manera elegante manteniendo la operatividad en memoria volátil sin comprometer la ejecución del bucle de juego.
 
-- **1 punto por segundo** sobrevivido.
-- **10 puntos** por matar un zombie.
-- **15 puntos** por derribar un aéreo (vuela, es más difícil de acertar).
-
-Sólo cuentan los enemigos que **tú** matas con la espada o el láser. Un enemigo que
-se estrella contra el Núcleo o contra ti también desaparece, pero no da puntos:
-ese golpe lo perdiste.
-
-El mejor puntaje se guarda en el navegador (`localStorage`, clave `xolotl_record`) y
-se muestra en el HUD y en la pantalla de fin del juego. Si el navegador tiene el
-almacenamiento bloqueado (modo incógnito, permisos), el juego sigue funcionando
-igual; sólo no se conserva el récord.
-
-## Cómo se usa
-
-`setupHUD()` se llama una vez al entrar a la escena `game` y devuelve las funciones
-para actualizarlo. Como se llama al entrar a la escena, **todos los contadores nacen
-en cero solos**: no hay que resetear nada a mano al reiniciar la partida.
+## 🔌 API y Contrato de Uso (`setupHUD`)
+La función `setupHUD()` se inicializa de manera síncrona al instanciar la escena `game`, garantizando un estado inicial limpio en cero:
 
 ```js
 import { setupHUD, PUNTOS_ZOMBIE, PUNTOS_AEREO } from "./hud.js";
 
-// Los máximos salen de la vida con la que arrancan, para no repetir los números
 const hud = setupHUD(nucleo.hp, player.hp);
 
-hud.setVidaNucleo(3);                 // repinta los corazones dorados
-hud.setVidaJugador(1);                // repinta los corazones cyan
-hud.contarEnemigo(PUNTOS_ZOMBIE);     // suma puntos y cuenta el kill
-hud.sumarPuntos(50);                  // suma puntos sueltos, sin contar kill
-hud.avisarOleada("Oleada mas rapida"); // mensaje al centro, se desvanece solo
-hud.ocultar();                        // esconde el HUD (al perder)
-hud.mostrar();                        // lo vuelve a mostrar
+hud.setVidaNucleo(3);             // Actualiza corazones dorados del núcleo
+hud.setVidaJugador(1);            // Actualiza corazones cian del avatar
+hud.contarEnemigo(PUNTOS_ZOMBIE); // Incrementa puntaje y contador de bajas
+hud.sumarPuntos(50);              // Inyección de puntaje asíncrono
+hud.avisarOleada("Alerta Roja");  // Despliegue de notificación central
+hud.ocultar();                    // Ocultamiento de la capa en Game Over
+hud.mostrar();                    // Restablecimiento visual
 
 const resumen = hud.terminarPartida();
-// -> { tiempo: "01:35", puntos: 250, enemigos: 14, record: 400, esRecord: false }
-```
-
-`terminarPartida()` cierra la partida: guarda el récord si lo rompiste y devuelve el
-resumen que la escena `gameover` usa para mostrarte cómo te fue.
-
-## Dónde vive cada pieza
-
-- `frontend/js/hud.js` — toda la lógica y el estado del HUD.
-- `frontend/index.html` — el markup dentro de `#hud`. Los ids son los que busca
-  `hud.js`, así que conviene no renombrarlos a la ligera.
-- `frontend/css/style.css` — los estilos, bajo el comentario `HUD`. La capa lleva
-  `pointer-events: none` para que los clics pasen de largo hacia el juego.
-
-## Probarlo en local
-
-`main.js` usa módulos ES, así que abrir el `index.html` con doble clic **no**
-funciona (el navegador lo bloquea por CORS). Hay que servirlo. Desde la carpeta
-`frontend/` del repo:
-
-```bash
-python3 -m http.server 8000
-```
-
-Y abrir <http://localhost:8000>. Cualquier servidor estático sirve igual.
+// Retorno estructurado: { tiempo: "01:35", puntos: 250, enemigos: 14, record: 400, esRecord: false }
