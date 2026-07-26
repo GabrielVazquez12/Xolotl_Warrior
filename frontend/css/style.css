@@ -1,0 +1,50 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a2e;
+    overflow: hidden;
+    font-family: sans-serif;
+}
+canvas {
+    display:block;
+}
+
+#ui-layer{
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    pointer-events: none;
+    width: 100%;
+}
+
+h1 {
+    margin: 0 0 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0px #000;
+}
+
+p { 
+    margin: 0; 
+    color: #0ff; 
+    font-size: 14px; 
+    text-shadow: 1px 1px 0px #000; 
+}
+
+#healt-container { 
+    position: absolute; 
+    top: 20px; 
+    right: 40px; 
+    font-size: 24px; 
+    font-weight: bold; 
+    text-shadow: 2px 2px 0px #000; 
+}
+
+.nucleo-hp { 
+    color: #ffd700; 
+    margin-right: 20px;
+}
+
+.fantasma-hp { 
+    color: #00ffff; }
