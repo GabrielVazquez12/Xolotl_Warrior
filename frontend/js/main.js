@@ -11,6 +11,33 @@ setGravity(1800);
 const ALTO_PISO = 60;
 
 // ===============================================================
+// SISTEMA DE ECONOMÍA Y PERSISTENCIA (LOCALSTORAGE)
+// ===============================================================
+const CLAVE_MONEDAS = "xolotl_monedas_demo";
+const CLAVE_SKIN = "xolotl_skin_activa";
+
+function getMonedas() {
+    try { return Number(localStorage.getItem(CLAVE_MONEDAS)) || 0; } catch { return 0; }
+}
+
+function sumarMonedas(cantidad) {
+    try {
+        const total = getMonedas() + cantidad;
+        localStorage.setItem(CLAVE_MONEDAS, String(total));
+        return total;
+    } catch { return 0; }
+}
+
+function gastarMonedas(cantidad) {
+    const actual = getMonedas();
+    if (actual >= cantidad) {
+        localStorage.setItem(CLAVE_MONEDAS, String(actual - cantidad));
+        return true;
+    }
+    return false;
+}
+
+// ===============================================================
 // ESCENA: MENÚ PRINCIPAL
 // ===============================================================
 scene("menu", () => {
@@ -38,18 +65,18 @@ scene("menu", () => {
 
     const xolotlMenu = add([
         sprite("xolotl"),
-        pos(centroX, centroY - 150),
+        pos(centroX, centroY - 140),
         scale(1.5),
         anchor("center")
     ]);
     
     xolotlMenu.onUpdate(() => {
-        xolotlMenu.pos.y = (centroY - 150) + wave(-10, 10, time() * 2);
+        xolotlMenu.pos.y = (centroY - 140) + wave(-10, 10, time() * 2);
     });
 
     const titulo = add([
-        text("XÓLOTL WARRIOR", { size: 72 }),
-        pos(centroX, centroY - 30),
+        text("XÓLOTL WARRIOR", { size: 64 }),
+        pos(centroX, centroY - 20),
         anchor("center"),
         color(255, 215, 0)
     ]);
@@ -59,52 +86,38 @@ scene("menu", () => {
         titulo.color = rgb(255, wave(180, 215, time() * 4), 0);
     });
 
+    // BOTÓN JUGAR
     const btnJugar = add([
-        rect(280, 70, { radius: 20 }),
-        pos(centroX, centroY + 90),
+        rect(260, 60, { radius: 15 }),
+        pos(centroX, centroY + 60),
         anchor("center"),
         area(),
-        scale(1),
         color(20, 40, 80),
-        opacity(0.7),
-        outline(4, rgb(0, 255, 255)),
+        outline(3, rgb(0, 255, 255)),
     ]);
-
-    const textoBtn = btnJugar.add([
-        text("INICIAR RETO", { size: 26, letterSpacing: 2 }),
-        anchor("center"),
-        color(255, 255, 255)
-    ]);
-
-    btnJugar.onHoverUpdate(() => {
-        btnJugar.scale = vec2(1.1);
-        btnJugar.color = rgb(40, 70, 120);
-        btnJugar.outline.color = hsl2rgb((time() * 0.5) % 1, 0.8, 0.6); 
-        textoBtn.color = rgb(255, 255, 0); 
-        setCursor("pointer");
-    });
-
-    btnJugar.onHoverEnd(() => {
-        btnJugar.scale = vec2(1);
-        btnJugar.color = rgb(20, 40, 80);
-        btnJugar.outline.color = rgb(0, 255, 255);
-        textoBtn.color = rgb(255, 255, 255);
-        setCursor("default");
-    });
-
-    onMouseMove((mpos) => {
-        add([
-            circle(5),
-            pos(mpos),
-            anchor("center"),
-            color(0, 255, 255),
-            opacity(0.8),
-            lifespan(0.3, { fade: 0.3 }) 
-        ]);
-    });
+    btnJugar.add([text("INICIAR RETO", { size: 22 }), anchor("center"), color(255, 255, 255)]);
 
     btnJugar.onClick(() => go("game"));
-    onKeyPress("enter", () => go("game"));
+
+    // BOTÓN TIENDA (EL ALTAR)
+    const btnTienda = add([
+        rect(260, 60, { radius: 15 }),
+        pos(centroX, centroY + 135),
+        anchor("center"),
+        area(),
+        color(80, 20, 80),
+        outline(3, rgb(255, 0, 255)),
+    ]);
+    btnTienda.add([text("EL ALTAR (SHOP)", { size: 22 }), anchor("center"), color(255, 255, 255)]);
+
+    btnTienda.onClick(() => go("shop"));
+
+    add([
+        text(`Almas/Monedas: ${getMonedas()}`, { size: 20 }),
+        pos(centroX, centroY + 190),
+        anchor("center"),
+        color(255, 215, 0)
+    ]);
 
     add([
         text("HackaTec 2026 - Carlos Vázquez & Alejandro Puente", { size: 16 }),
@@ -116,10 +129,103 @@ scene("menu", () => {
 });
 
 // ===============================================================
+// ESCENA: TIENDA DE SKINS (EL ALTAR)
+// ===============================================================
+scene("shop", () => {
+    const centroX = width() / 2;
+
+    add([
+        rect(width(), height()),
+        pos(0, 0),
+        color(15, 10, 25),
+        fixed()
+    ]);
+
+    add([
+        text("EL ALTAR SAGRADO (TIENDA)", { size: 42 }),
+        pos(centroX, 60),
+        anchor("center"),
+        color(255, 215, 0)
+    ]);
+
+    const txtMonedas = add([
+        text(`Almas Disponibles:  ${getMonedas()}`, { size: 24 }),
+        pos(centroX, 120),
+        anchor("center"),
+        color(0, 255, 255)
+    ]);
+
+    // Opciones de Skins
+    const skins = [
+        { id: "normal", nombre: "Xólotl Clásico", costo: 0, color: rgb(255, 255, 255) },
+        { id: "serpiente", nombre: "Serpiente Emplumada", costo: 30, color: rgb(0, 255, 120) },
+        { id: "mictlan", nombre: "Calavera del Mictlán", costo: 60, color: rgb(255, 50, 150) },
+    ];
+
+    skins.forEach((skin, index) => {
+        const posY = 220 + (index * 110);
+        const card = add([
+            rect(600, 80, { radius: 10 }),
+            pos(centroX, posY),
+            anchor("center"),
+            area(),
+            color(30, 30, 50),
+            outline(2, skin.color)
+        ]);
+
+        const skinActiva = localStorage.getItem(CLAVE_SKIN) || "normal";
+        const esActiva = skinActiva === skin.id;
+
+        card.add([
+            text(`${skin.nombre} ${skin.costo > 0 ? `(${skin.costo} 🪙)` : "(Desbloqueado)"}`, { size: 20 }),
+            pos(-270, 0),
+            anchor("left"),
+            color(esActiva ? rgb(255, 215, 0) : rgb(255, 255, 255))
+        ]);
+
+        const btnAccion = card.add([
+            rect(140, 45, { radius: 8 }),
+            pos(200, 0),
+            anchor("center"),
+            area(),
+            color(esActiva ? rgb(50, 150, 50) : (getMonedas() >= skin.costo ? rgb(0, 100, 200) : rgb(80, 80, 80)))
+        ]);
+
+        const textoBtn = btnAccion.add([
+            text(esActiva ? "EQUIPADO" : "OBTENER", { size: 16 }),
+            anchor("center"),
+            color(255, 255, 255)
+        ]);
+
+        btnAccion.onClick(() => {
+            if (esActiva) return;
+
+            if (skin.costo === 0 || gastarMonedas(skin.costo)) {
+                localStorage.setItem(CLAVE_SKIN, skin.id);
+                go("shop"); // Recarga la escena para actualizar estados
+            } else {
+                shake(4);
+            }
+        });
+    });
+
+    // BOTÓN VOLVER
+    const btnVolver = add([
+        rect(200, 50, { radius: 10 }),
+        pos(centroX, height() - 70),
+        anchor("center"),
+        area(),
+        color(50, 50, 50),
+        outline(2, rgb(255, 255, 255))
+    ]);
+    btnVolver.add([text("REGRESAR", { size: 20 }), anchor("center"), color(255, 255, 255)]);
+    btnVolver.onClick(() => go("menu"));
+});
+
+// ===============================================================
 // ESCENA: JUEGO PRINCIPAL
 // ===============================================================
 scene("game", () => {
-    // 0. EL FONDO ÉPICO (Única declaración limpia con tinte base)
     const fondo = add([
         sprite("fondo", { width: width(), height: height() }),
         pos(width() / 2, height() / 2),
@@ -128,7 +234,6 @@ scene("game", () => {
         z(-1) 
     ]);
 
-    // 1. ESCENARIO (Piso invisible)
     add([
         rect(width(), ALTO_PISO), 
         pos(0, height()), 
@@ -148,15 +253,26 @@ scene("game", () => {
     const hud = setupHUD(nucleo.hp, player.hp);
     const enemiesSystem = setupEnemies(nucleo, hud);
 
-    // Monitoreo de la Luna de Sangre para teñir el fondo de rojo carmesí
+    // Aplicar color de skin equipada al jugador al iniciar la partida
+    const skinActiva = localStorage.getItem(CLAVE_SKIN) || "normal";
+    if (skinActiva === "serpiente") player.color = rgb(0, 255, 120);
+    if (skinActiva === "mictlan") player.color = rgb(255, 50, 150);
+
+    // Monitoreo de la Luna de Sangre
     onUpdate(() => {
         if (window.juegoPausado) return;
-        
         if (enemiesSystem.isLunaDeSangreActiva()) {
             fondo.color = rgb(255, 100, 100); 
         } else {
             fondo.color = rgb(255, 255, 255); 
         }
+    });
+
+    // Recoger monedas del suelo
+    onCollide("player", "coin", (p, coin) => {
+        if (window.juegoPausado) return;
+        destroy(coin);
+        sumarMonedas(1);
     });
 
     // --- ESTADO ELEMENTAL DEL JUGADOR ---
@@ -172,7 +288,10 @@ scene("game", () => {
         clearTimeout(temporizadorElemento);
         temporizadorElemento = setTimeout(() => {
             player.elemento = "normal";
-            player.color = rgb(255, 255, 255);
+            // Restablece el color según su skin equipada
+            if (skinActiva === "serpiente") player.color = rgb(0, 255, 120);
+            else if (skinActiva === "mictlan") player.color = rgb(255, 50, 150);
+            else player.color = rgb(255, 255, 255);
         }, 12000);
     }
 
@@ -184,97 +303,41 @@ scene("game", () => {
 
     // --- SISTEMA DE PAUSA ---
     let pausado = false;
-
     onKeyPress("escape", () => {
         pausado = !pausado;
         window.juegoPausado = pausado;
         if (pausado) {
-            add([
-                rect(width(), height()),
-                pos(0, 0),
-                color(0, 0, 0),
-                opacity(0.6),
-                fixed(),
-                z(100),
-                "pause-ui"
-            ]);
-
-            add([
-                text("JUEGO PAUSADO", { size: 48 }),
-                pos(width() / 2, height() / 2 - 40),
-                anchor("center"),
-                color(255, 215, 0),
-                fixed(),
-                z(101),
-                "pause-ui"
-            ]);
-
-            add([
-                text("Presiona ESC para continuar\nPresiona M para volver al Menú", { size: 20, align: "center" }),
-                pos(width() / 2, height() / 2 + 30),
-                anchor("center"),
-                color(255, 255, 255),
-                fixed(),
-                z(101),
-                "pause-ui"
-            ]);
+            add([rect(width(), height()), pos(0, 0), color(0, 0, 0), opacity(0.6), fixed(), z(100), "pause-ui"]);
+            add([text("JUEGO PAUSADO", { size: 48 }), pos(width() / 2, height() / 2 - 40), anchor("center"), color(255, 215, 0), fixed(), z(101), "pause-ui"]);
+            add([text("Presiona ESC para continuar\nPresiona M para volver al Menú", { size: 20, align: "center" }), pos(width() / 2, height() / 2 + 30), anchor("center"), color(255, 255, 255), fixed(), z(101), "pause-ui"]);
         } else {
             destroyAll("pause-ui");
         }
     });
 
-    onKeyPress("m", () => {
-        if (pausado) {
-            go("menu");
-        }
-    });
+    onKeyPress("m", () => { if (pausado) go("menu"); });
 
-    // --- SISTEMA DE ULTI ESPIRITUAL ---
+    // --- ULTI ---
     onKeyPress("e", () => {
         if (window.juegoPausado) return;
-        
         if (!hud.gastarEnergia()) {
             hud.avisarOleada("¡Energía insuficiente!");
             return;
         }
 
         shake(24);
-        
-        add([
-            rect(width(), height()),
-            pos(0, 0),
-            color(0, 255, 255),
-            opacity(0.8),
-            fixed(),
-            z(200),
-            lifespan(0.3, { fade: 0.3 })
-        ]);
+        add([rect(width(), height()), pos(0, 0), color(0, 255, 255), opacity(0.8), fixed(), z(200), lifespan(0.3, { fade: 0.3 })]);
 
         const playerObj = get("player")[0];
         const centroOnda = playerObj ? playerObj.pos : vec2(width()/2, height()/2);
+        const onda = add([circle(10), pos(centroOnda), anchor("center"), color(255, 215, 0), opacity(0.6), area(), z(199), "ulti-wave"]);
 
-        const onda = add([
-            circle(10),
-            pos(centroOnda),
-            anchor("center"),
-            color(255, 215, 0),
-            opacity(0.6),
-            area(),
-            z(199),
-            "ulti-wave"
-        ]);
-
-        tween(10, Math.max(width(), height()) * 1.5, 0.4, (r) => onda.radius = r, easings.easeOutQuad)
-            .onEnd(() => destroy(onda));
+        tween(10, Math.max(width(), height()) * 1.5, 0.4, (r) => onda.radius = r, easings.easeOutQuad).onEnd(() => destroy(onda));
 
         get("enemy").forEach((enemy) => {
             if (enemy.isSpawning) return;
-
-            if (enemy.tier === 3) {
-                golpearEnemigo(enemy, 8); 
-            } else {
-                matarEnemigo(enemy);
-            }
+            if (enemy.tier === 3) golpearEnemigo(enemy, 8); 
+            else matarEnemigo(enemy);
         });
     });
 
@@ -286,12 +349,12 @@ scene("game", () => {
         hud.cargarEnergia(25);
         
         enemiesSystem.soltarPowerUp(enemy.pos);
+        enemiesSystem.soltarMoneda(enemy.pos); // <--- Suelta moneda con físicas
         destroy(enemy);
     }
 
     function golpearEnemigo(enemy, danio) {
         if (enemy.isSpawning) return;
-        
         enemy.hp -= danio;
 
         const colorOriginal = enemy.color;
@@ -304,9 +367,7 @@ scene("game", () => {
             const direccionAlejamiento = enemy.pos.sub(centroNucleo).unit();
             
             tween(enemy.pos, enemy.pos.add(direccionAlejamiento.scale(40)), 0.15, (p) => enemy.pos = p, easings.easeOutQuad)
-                .onEnd(() => {
-                    if (enemy.exists()) enemy.isKnockedBack = false;
-                });
+                .onEnd(() => { if (enemy.exists()) enemy.isKnockedBack = false; });
         }
 
         if (enemy.hp <= 0) matarEnemigo(enemy);
@@ -318,18 +379,14 @@ scene("game", () => {
         go("gameover", resumen);
     }
 
-    // --- COLISIONES Y COMBATE MODIFICADO POR ELEMENTOS ---
+    // Colisiones
     onCollide("sword_hitbox", "enemy", (hitbox, enemy) => {
         let danio = 2;
         if (player.elemento === "fuego") danio = 4;
-        
         golpearEnemigo(enemy, danio);
-
         if (player.elemento === "rayo") {
             get("enemy").forEach((otro) => {
-                if (otro !== enemy && otro.pos.dist(enemy.pos) < 100) {
-                    golpearEnemigo(otro, 2);
-                }
+                if (otro !== enemy && otro.pos.dist(enemy.pos) < 100) golpearEnemigo(otro, 2);
             });
         }
     });
@@ -338,12 +395,10 @@ scene("game", () => {
         destroy(laser); 
         let danio = 1;
         if (player.elemento === "fuego") danio = 2;
-        
         if (player.elemento === "hielo") {
             enemy.velocidad *= 0.3;
             wait(3, () => { if (enemy.exists()) enemy.velocidad = 130; });
         }
-
         golpearEnemigo(enemy, danio); 
     });
 
@@ -364,11 +419,8 @@ scene("game", () => {
         p.hp -= 1; 
         shake(6); 
         hud.setVidaJugador(p.hp);
-        if (p.hp <= 0) {
-            p.morir(() => terminar()); 
-        } else {
-            p.recibirDanio(); 
-        }
+        if (p.hp <= 0) p.morir(() => terminar()); 
+        else p.recibirDanio(); 
     });
 });
 
@@ -380,23 +432,9 @@ scene("gameover", (resumen) => {
     const centroY = height() / 2;
 
     add([ text("FIN DEL JUEGO", { size: 48 }), pos(centroX, centroY - 110), anchor("center"), color(255, 50, 50) ]);
-
-    add([
-        text(`Tiempo: ${resumen.tiempo}    Enemigos: ${resumen.enemigos}`, { size: 22 }),
-        pos(centroX, centroY - 45), anchor("center"), color(180, 180, 180)
-    ]);
-
-    add([
-        text(`PUNTOS: ${resumen.puntos}`, { size: 36 }),
-        pos(centroX, centroY), anchor("center"), color(255, 215, 0)
-    ]);
-
-    add([
-        text(resumen.esRecord ? "NUEVO RECORD!" : `Record: ${resumen.record}`, { size: 22 }),
-        pos(centroX, centroY + 45), anchor("center"),
-        color(resumen.esRecord ? rgb(0, 255, 255) : rgb(180, 180, 180))
-    ]);
-
+    add([ text(`Tiempo: ${resumen.tiempo}    Enemigos: ${resumen.enemigos}`, { size: 22 }), pos(centroX, centroY - 45), anchor("center"), color(180, 180, 180) ]);
+    add([ text(`PUNTOS: ${resumen.puntos}`, { size: 36 }), pos(centroX, centroY), anchor("center"), color(255, 215, 0) ]);
+    add([ text(resumen.esRecord ? "NUEVO RECORD!" : `Record: ${resumen.record}`, { size: 22 }), pos(centroX, centroY + 45), anchor("center"), color(resumen.esRecord ? rgb(0, 255, 255) : rgb(180, 180, 180)) ]);
     add([ text("Presiona R para reiniciar", { size: 24 }), pos(centroX, centroY + 110), anchor("center") ]);
 
     onKeyPress("r", () => go("game"));

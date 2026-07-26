@@ -74,7 +74,24 @@ export function setupEnemies(nucleo, hud) {
             alerta.opacity = wave(0, 1, time() * 15);
         });
     }
+// --- NUEVO: SISTEMA DE MONEDAS CON FÍSICAS ---
+    function soltarMoneda(posicion) {
+        if (!chance(0.6)) return; // 60% de probabilidad de soltar alma/moneda
 
+        const moneda = add([
+            circle(7),
+            pos(posicion),
+            anchor("center"),
+            area(),
+            body(), // Para que caigan y choquen con el piso
+            color(255, 215, 0), // Dorado brillante
+            z(5),
+            "coin"
+        ]);
+
+        // Impulso inicial hacia arriba al morir el enemigo (efecto explosión de botín)
+        moneda.jump(rand(350, 550));
+    }
     function soltarPowerUp(posicion) {
         if (!chance(0.15)) return; 
 
@@ -226,5 +243,6 @@ export function setupEnemies(nucleo, hud) {
     return {
         isLunaDeSangreActiva,
         soltarPowerUp,
+        soltarMoneda,
     };
 }
