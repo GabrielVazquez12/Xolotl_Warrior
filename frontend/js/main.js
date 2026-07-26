@@ -80,9 +80,11 @@ scene("game", () => {
         p.hp -= 1; 
         shake(6); // Pantalla tiembla leve
         hud.setVidaJugador(p.hp);
-        p.use(color(255, 0, 0)); 
-        wait(0.2, () => p.unuse("color")); 
-        if (p.hp <= 0) terminar(); 
+        if (p.hp <= 0) {
+            p.morir(() => terminar()); 
+        } else {
+            p.recibirDanio(); 
+        }
     });
 });
 
@@ -113,8 +115,6 @@ scene("gameover", (resumen) => {
 
     add([ text("Presiona R para reiniciar", { size: 24 }), pos(centroX, centroY + 110), anchor("center") ]);
 
-    // No hace falta resetear nada a mano: al volver a "game", setupHUD()
-    // vuelve a poner los contadores en cero y a mostrar el HUD.
     onKeyPress("r", () => go("game"));
 });
 
