@@ -9,6 +9,10 @@ loadGameAssets(); // Mandamos llamar al arte
 
 setGravity(1800);
 const ALTO_PISO = 60;
+
+// ===============================================================
+// ESCENA: MENÚ PRINCIPAL
+// ===============================================================
 scene("menu", () => {
     const centroX = width() / 2;
     const centroY = height() / 2;
@@ -17,32 +21,31 @@ scene("menu", () => {
     add([
         rect(width(), height()),
         pos(0, 0),
-        color(10, 15, 30), // Azul/Gris muy oscuro
+        color(10, 15, 30),
         fixed()
     ]);
 
-    // 2. SISTEMA DE PARTÍCULAS (Chispas subiendo estilo hoguera mágica)
+    // 2. SISTEMA DE PARTÍCULAS (Chispas)
     loop(0.1, () => {
         add([
-            circle(rand(1, 3)), // Tamaño aleatorio
-            pos(rand(0, width()), height() + 10), // Nacen abajo de la pantalla
-            color(rgb(255, 0, 0)), // Color cyan neón
+            circle(rand(1, 3)),
+            pos(rand(0, width()), height() + 10),
+            color(rgb(0, 255, 255)), // Color cyan neón
             opacity(rand(0.3, 0.8)),
-            move(UP, rand(20, 60)), // Suben a diferentes velocidades
-            offscreen({ destroy: true }), // Se borran al salir para no gastar RAM
+            move(UP, rand(20, 60)),
+            offscreen({ destroy: true }),
             "chispa"
         ]);
     });
 
-    // 3. EL XÓLOTL (Flotando con físicas falsas)
+    // 3. EL XÓLOTL FLOTANTE
     const xolotlMenu = add([
-        sprite("xolotl", { anim: "" }),
+        sprite("xolotl", { anim: "idle" }),
         pos(centroX, centroY - 150),
         scale(1.5),
         anchor("center")
     ]);
     
-    // El wave() hace que suba y baje suavemente entre -10 y 10 pixeles
     xolotlMenu.onUpdate(() => {
         xolotlMenu.pos.y = (centroY - 150) + wave(-10, 10, time() * 2);
     });
@@ -56,9 +59,7 @@ scene("menu", () => {
     ]);
     
     titulo.onUpdate(() => {
-        // Escala rítmicamente simulando un latido
         titulo.scale = vec2(wave(1, 1.03, time() * 3));
-        // Alterna el color dorado a uno ligeramente más naranja
         titulo.color = rgb(255, wave(180, 215, time() * 4), 0);
     });
 
@@ -80,14 +81,11 @@ scene("menu", () => {
         color(255, 255, 255)
     ]);
 
-    // MAGIA HOVER (Cuando pasas el mouse)
     btnJugar.onHoverUpdate(() => {
         btnJugar.scale = vec2(1.1);
         btnJugar.color = rgb(40, 70, 120);
-        
-        // hsl2rgb genera un arcoíris en base al tiempo, ¡se ve brutalisimo!
         btnJugar.outline.color = hsl2rgb((time() * 0.5) % 1, 0.8, 0.6); 
-        textoBtn.color = rgb(255, 255, 0); // El texto se vuelve amarillo
+        textoBtn.color = rgb(255, 255, 0); 
         setCursor("pointer");
     });
 
@@ -99,90 +97,120 @@ scene("menu", () => {
         setCursor("default");
     });
 
+    // 6. ESTELA DEL MOUSE
+    onMouseMove((mpos) => {
+        add([
+            circle(5),
+            pos(mpos),
+            anchor("center"),
+            color(0, 255, 255),
+            opacity(0.8),
+            lifespan(0.3, { fade: 0.3 }) 
+        ]);
+    });
 
-
-    // EVENTOS PARA INICIAR
+    // 7. EVENTOS Y CRÉDITOS
     btnJugar.onClick(() => go("game"));
     onKeyPress("enter", () => go("game"));
 
-    // 7. CRÉDITOS OFICIALES PARA LOS JUECES
     add([
-        text("HackaTec 2026 ", { size: 16 }),
+        text("HackaTec 2026 - Carlos Vázquez & Alejandro Puente", { size: 16 }),
         pos(centroX, height() - 30),
         anchor("center"),
         color(100, 200, 255),
         opacity(0.8)
     ]);
 });
+
+// ===============================================================
+// ESCENA: JUEGO PRINCIPAL
+// ===============================================================
 scene("game", () => {
+    // 0. EL FONDO ÉPICO (Ajustado al tamaño del lienzo)
     add([
         sprite("fondo", { width: width(), height: height() }),
         pos(width() / 2, height() / 2),
         anchor("center"),
-        // scale(1.2), // <-- Descomenta y juega con este número si la imagen no cubre toda tu pantalla
-        z(-1) // MAGIA: El z(-1) obliga a la imagen a irse al fondo, detrás de todo
+        z(-1) 
     ]);
 
-    // 1. Escenario (Piso de colisión invisible)
+    // 1. ESCENARIO (Piso invisible)
     add([
         rect(width(), ALTO_PISO), 
         pos(0, height()), 
         anchor("botleft"),
         area(), 
         body({ isStatic: true }), 
-        opacity(0), // MAGIA 2: opacity(0) lo hace invisible, pero sigue siendo un muro sólido para las físicas
+        opacity(0), 
         "ground"
     ]);
-const nucleo = add([
+
+    const nucleo = add([
         rect(60, 80), pos(width() / 2, height() - ALTO_PISO), anchor("bot"), 
         area(), color(255, 215, 0), "nucleo", { hp: 5 }
     ]);
-    // 2. Traemos las lógicas desde los otros archivos
+
+    // 2. LÓGICAS EXTERNAS
     const player = setupPlayer();
-
-    // El HUD toma como maximo la vida con la que arrancan, asi no repetimos
-    // los numeros aqui: si mañana cambian los hp, los corazones se ajustan solos.
     const hud = setupHUD(nucleo.hp, player.hp);
-
     setupEnemies(nucleo, hud);
 
-    // 3. Ayudantes de la partida
-    //    Ojo: matarEnemigo() solo se llama cuando TU lo matas. Un enemigo que
-    //    choca contra el Nucleo o contra ti tambien se destruye, pero no da
-    //    puntos, porque ese golpe lo perdiste tu.
+    // 3. FUNCIONES DE APOYO Y COMBATE
     function matarEnemigo(enemy) {
         hud.contarEnemigo(enemy.is("zombie") ? PUNTOS_ZOMBIE : PUNTOS_AEREO);
         destroy(enemy);
     }
 
-    // Se acabo: apagamos el HUD y le pasamos el resumen a la pantalla final
+    // Función maestra de combate con físicas de knockback (retroceso)
+    function golpearEnemigo(enemy, danio) {
+        if (enemy.isSpawning) return;
+        
+        enemy.hp -= danio;
+
+        // Efecto visual (Flash Blanco)
+        const colorOriginal = enemy.color;
+        enemy.color = rgb(255, 255, 255);
+        wait(0.1, () => { if (enemy.exists()) enemy.color = colorOriginal; });
+
+        // Efecto Físico (Knockback). ¡Los Jefes (Tier 3) no retroceden!
+        if (enemy.tier !== 3) {
+            enemy.isKnockedBack = true; // Pausa su Inteligencia Artificial
+
+            // Calculamos la dirección contraria al núcleo para empujarlo
+            const centroNucleo = vec2(width() / 2, height() - ALTO_PISO);
+            const direccionAlejamiento = enemy.pos.sub(centroNucleo).unit();
+            
+            tween(enemy.pos, enemy.pos.add(direccionAlejamiento.scale(40)), 0.15, (p) => enemy.pos = p, easings.easeOutQuad)
+                .onEnd(() => {
+                    // Reactivamos su IA cuando termina de retroceder
+                    if (enemy.exists()) enemy.isKnockedBack = false;
+                });
+        }
+
+        if (enemy.hp <= 0) matarEnemigo(enemy);
+    }
+
     function terminar() {
         const resumen = hud.terminarPartida();
         hud.ocultar();
         go("gameover", resumen);
     }
 
-    // 4. Colisiones Globales (Daño y Efectos de Temblor)
+    // 4. COLISIONES
     onCollide("sword_hitbox", "enemy", (hitbox, enemy) => {
-        if (enemy.isSpawning) return; 
-        if (enemy.is("zombie")) { matarEnemigo(enemy); return; } // la espada lo parte de un golpe
-        enemy.hp -= 1;
-        if (enemy.hp <= 0) matarEnemigo(enemy);
+        golpearEnemigo(enemy, 2); // Espada = 2 de daño (Cuerpo a cuerpo, más riesgo)
     });
 
     onCollide("laser", "enemy", (laser, enemy) => {
-        if (enemy.isSpawning) return;
         destroy(laser); 
-        if (enemy.is("aerial")) { matarEnemigo(enemy); return; } // el laser derriba al aereo de un tiro
-        enemy.hp -= 1;
-        if (enemy.hp <= 0) matarEnemigo(enemy);
+        golpearEnemigo(enemy, 1); // Láser = 1 de daño (A distancia, más seguro)
     });
 
     onCollide("enemy", "nucleo", (enemy, nuc) => {
         if (enemy.isSpawning) return;
-        destroy(enemy); // se estrello contra el Nucleo: no cuenta como kill
-        nuc.hp -= 1; 
-        shake(12); // Pantalla tiembla fuerte
+        destroy(enemy); 
+        nuc.hp -= (enemy.tier === 3) ? 3 : 1; // El Jefe quita 3 vidas de golpe
+        shake(12); 
         hud.setVidaNucleo(nuc.hp);
         nuc.color = rgb(255, 0, 0); 
         wait(0.2, () => nuc.color = rgb(255, 215, 0)); 
@@ -190,10 +218,10 @@ const nucleo = add([
     });
 
     onCollide("enemy", "player", (enemy, p) => {
-        if (enemy.isSpawning || p.isDashing) return; // Ignora el daño si usa el dash
-        destroy(enemy); // te embistio a ti: tampoco cuenta como kill
+        if (enemy.isSpawning || p.isDashing) return; 
+        destroy(enemy); 
         p.hp -= 1; 
-        shake(6); // Pantalla tiembla leve
+        shake(6); 
         hud.setVidaJugador(p.hp);
         if (p.hp <= 0) {
             p.morir(() => terminar()); 
@@ -203,8 +231,9 @@ const nucleo = add([
     });
 });
 
-// La pantalla final recibe el resumen que arma el HUD, asi no tiene que
-// andar leyendo el DOM para saber como te fue.
+// ===============================================================
+// ESCENA: GAME OVER
+// ===============================================================
 scene("gameover", (resumen) => {
     const centroX = width() / 2;
     const centroY = height() / 2;
@@ -221,7 +250,6 @@ scene("gameover", (resumen) => {
         pos(centroX, centroY), anchor("center"), color(255, 215, 0)
     ]);
 
-    // Si rompiste tu marca se lo decimos; si no, le recordamos cual es
     add([
         text(resumen.esRecord ? "NUEVO RECORD!" : `Record: ${resumen.record}`, { size: 22 }),
         pos(centroX, centroY + 45), anchor("center"),
@@ -233,4 +261,5 @@ scene("gameover", (resumen) => {
     onKeyPress("r", () => go("game"));
 });
 
+// Arranca el juego cargando el menú primero
 go("menu");
