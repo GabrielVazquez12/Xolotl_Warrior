@@ -12,11 +12,10 @@ const VEL_DASH = 1200;
 const COOLDOWN_ATAQUE = 0.25;
 
 export function setupPlayer() {
-    // 1. Creamos al personaje
     const player = add([
-        sprite("guardian", { anim: "idle" }),
+        sprite("xolotl", { anim: "idle" }),
         pos(width() / 2 - 200, height() - 160),
-        scale(1.5),
+        scale(0.8),
         anchor("center"),
         area({ shape: new Rect(vec2(0,0), 20, 25) }),
         body(),
@@ -26,17 +25,36 @@ export function setupPlayer() {
             canAttack: true,
             hp: 3,
             isFlying: false,
-            isDashing: false
+            isDashing: false,
+            
+            // Función personalizada para cuando recibe golpe
+            recibirDanio() {
+                this.play("hit");
+            },
+
+            // Función personalizada para cuando muere
+            morir(callbackTerminar) {
+                this.play("death");
+                // Congelamos controles y gravedad un momento para que luzca la animación de muerte
+                this.unuse("body");
+                this.isDashing = true; // Bloquea acciones
+                // Esperamos a que termine la animación de muerte antes de ir al Game Over
+                wait(0.5, () => {
+                    callbackTerminar();
+                });
+            }
         }
     ]);
 
-    // 2. Funciones auxiliares
     function getVelocidadActual() { return isKeyDown("shift") ? VEL_CORRER : VEL_NORMAL; }
+    
     function iniciarAnimacionCorrer() {
-        if (player.curAnim() !== "correr") player.play("correr");
+        if (player.curAnim() !== "walk" && player.curAnim() !== "melee" && player.curAnim() !== "shoot" && player.curAnim() !== "hit") {
+            player.play("walk");
+        }
     }
 
-    // 3. Movimiento Izquierda / Derecha
+    // Movimiento
     onKeyDown("left", () => { player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer(); });
     onKeyDown("a", () => { player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer(); });
     
@@ -45,11 +63,13 @@ export function setupPlayer() {
 
     onKeyRelease(["left", "right", "a", "d"], () => {
         if (!isKeyDown("left") && !isKeyDown("right") && !isKeyDown("a") && !isKeyDown("d")) {
-            player.play("idle");
+            if (player.curAnim() !== "melee" && player.curAnim() !== "shoot" && player.curAnim() !== "hit") {
+                player.play("idle");
+            }
         }
     });
 
-    // 4. Sistema de Vuelo y Salto (Estilo Kirby)
+    // Vuelo 
     onKeyDown("up", () => { if (player.isFlying) player.move(0, -getVelocidadActual()); });
     onKeyDown("w", () => { if (player.isFlying) player.move(0, -getVelocidadActual()); });
     onKeyDown("down", () => { if (player.isFlying) player.move(0, getVelocidadActual()); });
@@ -70,14 +90,15 @@ export function setupPlayer() {
         player.gravityScale = 1;
     });
 
-    // 5. Dash Espectral (Faseo con la tecla Q)
+    // Dash Espectral
     let puedeDashear = true;
     onKeyPress("q", () => {
-        if (!puedeDashear) return;
+        if (!puedeDashear || player.isDashing) return;
         puedeDashear = false;
         player.isDashing = true;
         player.opacity = 0.5; // Semitransparente
         playDash();
+        player.opacity = 0.5; 
         
         const impulso = player.direccion === 1 ? VEL_DASH : -VEL_DASH;
         const dashAnim = onUpdate(() => { player.move(impulso, 0); });
@@ -88,16 +109,17 @@ export function setupPlayer() {
             player.opacity = 1;
         });
 
-        wait(1, () => { puedeDashear = true; }); // Cooldown del dash
+        wait(1, () => { puedeDashear = true; }); 
     });
 
-    // 6. Sistema de Combate (Espada y Láser)
+    // Combate
     function resetAttack() { wait(COOLDOWN_ATAQUE, () => { player.canAttack = true; }); }
 
     onKeyPress("j", () => {
-        if (!player.canAttack) return;
+        if (!player.canAttack || player.isDashing) return;
         player.canAttack = false;
         playSword();
+        player.play("melee");
         const offsetX = player.direccion === 1 ? 40 : -40;
         const hitbox = add([ rect(50, 40), pos(player.pos.add(offsetX, 0)), anchor("center"), area(), color(255, 100, 100), "sword_hitbox" ]);
         wait(0.1, () => { destroy(hitbox); });
@@ -105,21 +127,27 @@ export function setupPlayer() {
     });
 
     onKeyPress("k", () => {
-        if (!player.canAttack) return;
+        if (!player.canAttack || player.isDashing) return;
         player.canAttack = false;
         playLaser();
+        player.play("shoot");
         const offsetX = player.direccion === 1 ? 30 : -30;
         add([ circle(10), pos(player.pos.add(offsetX, 10)), anchor("center"), area(), color(100, 100, 255), move(player.direccion === 1 ? RIGHT : LEFT, VEL_LASER), offscreen({ destroy: true }), "laser" ]);
         resetAttack();
     });
 
-    // 7. Límites de la pantalla (Para que no se escape)
+    // Regresar a idle al terminar ataques o golpes
+    player.onAnimEnd((anim) => {
+        if (anim === "melee" || anim === "shoot" || anim === "hit") {
+            player.play("idle");
+        }
+    });
+
     onUpdate(() => {
         if (player.pos.x < 20) player.pos.x = 20;
         if (player.pos.x > width() - 20) player.pos.x = width() - 20;
         if (player.pos.y < 20) player.pos.y = 20;
     });
 
-    // Devolvemos el jugador al final
     return player;
 }
