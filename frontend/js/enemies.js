@@ -3,16 +3,19 @@ const ALTO_PISO = 60;
 const ZONA_SEGURA = 200;
 
 export function setupEnemies(nucleo, hud) {
+    let lunaDeSangreActiva = false;
+
+    function isLunaDeSangreActiva() {
+        return lunaDeSangreActiva;
+    }
     
     // --- 1. FÁBRICA DE TERRESTRES (3 Tiers) ---
     function spawnTerrestre(tier, saleDeIzquierda) {
         let spawnX;
         
         if (tier === 3) {
-            // El Jefe (Tier 3) nace siempre fuera de la pantalla
             spawnX = saleDeIzquierda ? -80 : width() + 80;
         } else {
-            // Los normales nacen según el lado de la alerta, respetando la Zona Segura
             if (saleDeIzquierda !== undefined) {
                 spawnX = saleDeIzquierda ? rand(50, (width()/2) - ZONA_SEGURA) : rand((width()/2) + ZONA_SEGURA, width() - 50);
             } else {
@@ -28,7 +31,6 @@ export function setupEnemies(nucleo, hud) {
         const zombi = add([
             rect(30 * tamano, 30 * tamano), pos(spawnX, height() - ALTO_PISO), 
             area(), body(), color(colorEnemigo), 
-            // Etiqueta "boss" crucial para detener spawns normales
             anchor("bot"), scale(tamano, 0.1), "enemy", "zombie", tier === 3 ? "boss" : "minion",
             { hp: vida, isSpawning: true, velocidad: VEL_ENEMIGO * velMulti, tier: tier, isKnockedBack: false } 
         ]);
@@ -39,7 +41,6 @@ export function setupEnemies(nucleo, hud) {
 
     // --- 2. FÁBRICA DE AÉREOS (3 Tiers) ---
     function spawnAereo(tier, saleDeIzquierda) {
-        // Los aéreos siempre nacen desde fuera de la pantalla
         const startX = saleDeIzquierda ? -50 : width() + 50; 
         const startY = rand(50, height() - ALTO_PISO - 150);
 
@@ -55,7 +56,7 @@ export function setupEnemies(nucleo, hud) {
         ]);
     }
 
-    // --- 3. SISTEMA DE ALERTAS Y SONIDOS ---
+    // --- 3. SISTEMA DE ALERTAS Y POWER-UPS ---
     function mostrarAlerta(saleDeIzquierda, esAereo) {
         const posX = saleDeIzquierda ? 40 : width() - 40;
         const posY = esAereo ? height() / 3 : height() - ALTO_PISO - 40;
@@ -69,9 +70,37 @@ export function setupEnemies(nucleo, hud) {
             fixed()
         ]);
 
-        // Animación de parpadeo de la alerta
         alerta.onUpdate(() => {
             alerta.opacity = wave(0, 1, time() * 15);
+        });
+    }
+
+    function soltarPowerUp(posicion) {
+        if (!chance(0.15)) return; 
+
+        const tipos = ["fuego", "hielo", "rayo"];
+        const tipoElegido = tipos[Math.floor(Math.random() * tipos.length)];
+        
+        let colorOrbe = rgb(255, 100, 50); 
+        if (tipoElegido === "hielo") colorOrbe = rgb(100, 200, 255);
+        if (tipoElegido === "rayo") colorOrbe = rgb(255, 255, 0);
+
+        const orbe = add([
+            circle(10),
+            pos(posicion),
+            anchor("center"),
+            area(),
+            color(colorOrbe),
+            scale(1),
+            z(5),
+            lifespan(10, { fade: 2 }),
+            "powerup",
+            { tipoElemento: tipoElegido }
+        ]);
+
+        orbe.onUpdate(() => {
+            if (window.juegoPausado) return;
+            orbe.pos.y += wave(-0.5, 0.5, time() * 5);
         });
     }
 
@@ -79,10 +108,46 @@ export function setupEnemies(nucleo, hud) {
     let segundosJugados = 0;
     
     loop(1, () => {
-        // ¡Si está pausado, el tiempo no avanza y no tira alertas!
         if (window.juegoPausado) return; 
 
         segundosJugados++;
+
+        // --- LUNA DE SANGRE TEMPORAL (Cada 60s, dura 15s) ---
+        if (segundosJugados > 0 && segundosJugados % 60 === 0) {
+            lunaDeSangreActiva = true;
+            
+            // Flash rojo de entrada
+            add([
+                rect(width(), height()),
+                pos(0, 0),
+                color(255, 0, 0),
+                opacity(0.8),
+                fixed(),
+                z(300),
+                lifespan(0.5, { fade: 0.5 })
+            ]);
+
+            hud.avisarOleada("🔴 ¡LUNA DE SANGRE ACTIVADA! ¡Puntos dobles por 15s!");
+
+            // Se apaga sola después de 15 segundos
+            wait(15, () => {
+                lunaDeSangreActiva = false;
+                
+                // Flash blanco de salida
+                add([
+                    rect(width(), height()),
+                    pos(0, 0),
+                    color(255, 255, 255),
+                    opacity(0.5),
+                    fixed(),
+                    z(300),
+                    lifespan(0.3, { fade: 0.3 })
+                ]);
+
+                hud.avisarOleada("🌕 La Luna de Sangre se ha disipado.");
+            });
+        }
+
         if (segundosJugados === 30) hud.avisarOleada("Fin del calentamiento. ¡Cuidado arriba!");
         if (segundosJugados === 60) hud.avisarOleada("¡Los enemigos están mutando! (Tier 2)");
         if (segundosJugados % 50 === 0 && segundosJugados > 30) hud.avisarOleada("¡ALERTA ROJA: MINIJEFES ACERCÁNDOSE!");
@@ -98,14 +163,11 @@ export function setupEnemies(nucleo, hud) {
         tiempoEspera += rand(-0.2, 0.3);
 
         wait(tiempoEspera, () => {
-            // --- CANDADO DE PAUSA ---
-            // Si el usuario pausó el juego, ignoramos este spawn y volvemos a planear
             if (window.juegoPausado) {
                 planearProximoSpawn();
                 return;
             }
 
-            // --- LA MAGIA DEL BOSS ARENA ---
             if (get("boss").length > 0) {
                 wait(2, () => planearProximoSpawn());
                 return; 
@@ -126,9 +188,7 @@ export function setupEnemies(nucleo, hud) {
                 mostrarAlerta(saleDeIzquierda, isAerial);
                 
                 wait(1, () => {
-                    // Verificamos de nuevo por si pausaron durante el segundo de suspenso de la alerta
                     if (window.juegoPausado) return;
-                    
                     isAerial ? spawnAereo(tierElegido, saleDeIzquierda) : spawnTerrestre(tierElegido, saleDeIzquierda);
                 });
             } else {
@@ -143,29 +203,28 @@ export function setupEnemies(nucleo, hud) {
 
     // --- 5. IA DE MOVIMIENTO Y PATRONES ---
     onUpdate("enemy", (e) => {
-        // Si el juego está pausado globalmente, la IA se congela en seco
         if (window.juegoPausado) return; 
-
-        // Ignora el movimiento si apenas está naciendo o si acaba de recibir un espadazo
         if (e.isSpawning || e.isKnockedBack) return; 
         
         if (e.is("zombie")) {
             const dirX = Math.sign(nucleo.pos.x - e.pos.x);
             e.move(dirX * e.velocidad, 0);
 
-            // Patrón de Jefe: Hacer temblar la pantalla
             if (e.tier === 3) {
                 shake(1); 
             }
-
         } else if (e.is("aerial")) {
             const direccion = nucleo.pos.sub(e.pos).unit();
             e.move(direccion.scale(e.velocidad));
 
-            // Patrón de Volador Ágil (Tier 2): Zig-zag evasivo
             if (e.tier === 2) {
                 e.move(0, wave(-200, 200, time() * 10)); 
             }
         }
     });
+
+    return {
+        isLunaDeSangreActiva,
+        soltarPowerUp,
+    };
 }

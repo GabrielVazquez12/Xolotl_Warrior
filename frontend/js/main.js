@@ -5,7 +5,7 @@ import { setupEnemies } from "./enemies.js";
 import { setupHUD, PUNTOS_ZOMBIE, PUNTOS_AEREO } from "./hud.js";
 
 kaboom({ background: [ 22, 33, 62 ] });
-loadGameAssets(); // Mandamos llamar al arte
+loadGameAssets(); 
 
 setGravity(1800);
 const ALTO_PISO = 60;
@@ -17,7 +17,6 @@ scene("menu", () => {
     const centroX = width() / 2;
     const centroY = height() / 2;
 
-    // 1. EL FONDO BASE
     add([
         rect(width(), height()),
         pos(0, 0),
@@ -25,12 +24,11 @@ scene("menu", () => {
         fixed()
     ]);
 
-    // 2. SISTEMA DE PARTÍCULAS (Chispas)
     loop(0.1, () => {
         add([
             circle(rand(1, 3)),
             pos(rand(0, width()), height() + 10),
-            color(rgb(0, 255, 255)), // Color cyan neón
+            color(rgb(0, 255, 255)),
             opacity(rand(0.3, 0.8)),
             move(UP, rand(20, 60)),
             offscreen({ destroy: true }),
@@ -38,7 +36,6 @@ scene("menu", () => {
         ]);
     });
 
-    // 3. EL XÓLOTL FLOTANTE
     const xolotlMenu = add([
         sprite("xolotl"),
         pos(centroX, centroY - 150),
@@ -50,7 +47,6 @@ scene("menu", () => {
         xolotlMenu.pos.y = (centroY - 150) + wave(-10, 10, time() * 2);
     });
 
-    // 4. EL TÍTULO PULSANTE
     const titulo = add([
         text("XÓLOTL WARRIOR", { size: 72 }),
         pos(centroX, centroY - 30),
@@ -63,7 +59,6 @@ scene("menu", () => {
         titulo.color = rgb(255, wave(180, 215, time() * 4), 0);
     });
 
-    // 5. BOTÓN CYBERPUNK REACTIVO
     const btnJugar = add([
         rect(280, 70, { radius: 20 }),
         pos(centroX, centroY + 90),
@@ -97,7 +92,6 @@ scene("menu", () => {
         setCursor("default");
     });
 
-    // 6. ESTELA DEL MOUSE
     onMouseMove((mpos) => {
         add([
             circle(5),
@@ -109,7 +103,6 @@ scene("menu", () => {
         ]);
     });
 
-    // 7. EVENTOS Y CRÉDITOS
     btnJugar.onClick(() => go("game"));
     onKeyPress("enter", () => go("game"));
 
@@ -126,11 +119,12 @@ scene("menu", () => {
 // ESCENA: JUEGO PRINCIPAL
 // ===============================================================
 scene("game", () => {
-    // 0. EL FONDO ÉPICO (Ajustado al tamaño del lienzo)
-    add([
+    // 0. EL FONDO ÉPICO (Única declaración limpia con tinte base)
+    const fondo = add([
         sprite("fondo", { width: width(), height: height() }),
         pos(width() / 2, height() / 2),
         anchor("center"),
+        color(255, 255, 255), 
         z(-1) 
     ]);
 
@@ -149,92 +143,168 @@ scene("game", () => {
         rect(60, 80), pos(width() / 2, height() - ALTO_PISO), anchor("bot"), 
         area(), color(255, 215, 0), "nucleo", { hp: 5 }
     ]);
-    /// --- SISTEMA DE PAUSA ---
+
+    const player = setupPlayer();
+    const hud = setupHUD(nucleo.hp, player.hp);
+    const enemiesSystem = setupEnemies(nucleo, hud);
+
+    // Monitoreo de la Luna de Sangre para teñir el fondo de rojo carmesí
+    onUpdate(() => {
+        if (window.juegoPausado) return;
+        
+        if (enemiesSystem.isLunaDeSangreActiva()) {
+            fondo.color = rgb(255, 100, 100); 
+        } else {
+            fondo.color = rgb(255, 255, 255); 
+        }
+    });
+
+    // --- ESTADO ELEMENTAL DEL JUGADOR ---
+    player.elemento = "normal";
+    let temporizadorElemento = null;
+
+    function aplicarElemento(nuevoElemento) {
+        player.elemento = nuevoElemento;
+        if (nuevoElemento === "fuego") player.color = rgb(255, 100, 50);
+        else if (nuevoElemento === "hielo") player.color = rgb(100, 200, 255);
+        else if (nuevoElemento === "rayo") player.color = rgb(255, 255, 0);
+
+        clearTimeout(temporizadorElemento);
+        temporizadorElemento = setTimeout(() => {
+            player.elemento = "normal";
+            player.color = rgb(255, 255, 255);
+        }, 12000);
+    }
+
+    onCollide("player", "powerup", (p, powerup) => {
+        if (window.juegoPausado) return;
+        aplicarElemento(powerup.tipoElemento);
+        destroy(powerup);
+    });
+
+    // --- SISTEMA DE PAUSA ---
     let pausado = false;
 
     onKeyPress("escape", () => {
         pausado = !pausado;
         window.juegoPausado = pausado;
         if (pausado) {
-            // 1. Capa oscura semitransparente para oscurecer el fondo
             add([
                 rect(width(), height()),
                 pos(0, 0),
                 color(0, 0, 0),
                 opacity(0.6),
                 fixed(),
-                z(100), // <--- CAMBIADO DE zIndex A z
+                z(100),
                 "pause-ui"
             ]);
 
-            // 2. Título de Pausa
             add([
                 text("JUEGO PAUSADO", { size: 48 }),
                 pos(width() / 2, height() / 2 - 40),
                 anchor("center"),
                 color(255, 215, 0),
                 fixed(),
-                z(101), // <--- CAMBIADO DE zIndex A z
+                z(101),
                 "pause-ui"
             ]);
 
-            // 3. Instrucción de salida
             add([
                 text("Presiona ESC para continuar\nPresiona M para volver al Menú", { size: 20, align: "center" }),
                 pos(width() / 2, height() / 2 + 30),
                 anchor("center"),
                 color(255, 255, 255),
                 fixed(),
-                z(101), // <--- CAMBIADO DE zIndex A z
+                z(101),
                 "pause-ui"
             ]);
-
         } else {
-            // Si despausamos, borramos todos los elementos visuales de la pausa
             destroyAll("pause-ui");
         }
     });
 
-    // Si presionan 'M' estando en pausa, regresan al menú principal
     onKeyPress("m", () => {
         if (pausado) {
             go("menu");
         }
     });
 
-    // 2. LÓGICAS EXTERNAS
-    const player = setupPlayer();
-    const hud = setupHUD(nucleo.hp, player.hp);
-    setupEnemies(nucleo, hud);
+    // --- SISTEMA DE ULTI ESPIRITUAL ---
+    onKeyPress("e", () => {
+        if (window.juegoPausado) return;
+        
+        if (!hud.gastarEnergia()) {
+            hud.avisarOleada("¡Energía insuficiente!");
+            return;
+        }
 
-    // 3. FUNCIONES DE APOYO Y COMBATE
+        shake(24);
+        
+        add([
+            rect(width(), height()),
+            pos(0, 0),
+            color(0, 255, 255),
+            opacity(0.8),
+            fixed(),
+            z(200),
+            lifespan(0.3, { fade: 0.3 })
+        ]);
+
+        const playerObj = get("player")[0];
+        const centroOnda = playerObj ? playerObj.pos : vec2(width()/2, height()/2);
+
+        const onda = add([
+            circle(10),
+            pos(centroOnda),
+            anchor("center"),
+            color(255, 215, 0),
+            opacity(0.6),
+            area(),
+            z(199),
+            "ulti-wave"
+        ]);
+
+        tween(10, Math.max(width(), height()) * 1.5, 0.4, (r) => onda.radius = r, easings.easeOutQuad)
+            .onEnd(() => destroy(onda));
+
+        get("enemy").forEach((enemy) => {
+            if (enemy.isSpawning) return;
+
+            if (enemy.tier === 3) {
+                golpearEnemigo(enemy, 8); 
+            } else {
+                matarEnemigo(enemy);
+            }
+        });
+    });
+
     function matarEnemigo(enemy) {
-        hud.contarEnemigo(enemy.is("zombie") ? PUNTOS_ZOMBIE : PUNTOS_AEREO);
+        const basePuntos = enemy.is("zombie") ? PUNTOS_ZOMBIE : PUNTOS_AEREO;
+        const puntosFinales = basePuntos * (enemiesSystem.isLunaDeSangreActiva() ? 2 : 1);
+        
+        hud.contarEnemigo(puntosFinales);
+        hud.cargarEnergia(25);
+        
+        enemiesSystem.soltarPowerUp(enemy.pos);
         destroy(enemy);
     }
 
-    // Función maestra de combate con físicas de knockback (retroceso)
     function golpearEnemigo(enemy, danio) {
         if (enemy.isSpawning) return;
         
         enemy.hp -= danio;
 
-        // Efecto visual (Flash Blanco)
         const colorOriginal = enemy.color;
         enemy.color = rgb(255, 255, 255);
         wait(0.1, () => { if (enemy.exists()) enemy.color = colorOriginal; });
 
-        // Efecto Físico (Knockback). ¡Los Jefes (Tier 3) no retroceden!
         if (enemy.tier !== 3) {
-            enemy.isKnockedBack = true; // Pausa su Inteligencia Artificial
-
-            // Calculamos la dirección contraria al núcleo para empujarlo
+            enemy.isKnockedBack = true; 
             const centroNucleo = vec2(width() / 2, height() - ALTO_PISO);
             const direccionAlejamiento = enemy.pos.sub(centroNucleo).unit();
             
             tween(enemy.pos, enemy.pos.add(direccionAlejamiento.scale(40)), 0.15, (p) => enemy.pos = p, easings.easeOutQuad)
                 .onEnd(() => {
-                    // Reactivamos su IA cuando termina de retroceder
                     if (enemy.exists()) enemy.isKnockedBack = false;
                 });
         }
@@ -248,20 +318,39 @@ scene("game", () => {
         go("gameover", resumen);
     }
 
-    // 4. COLISIONES
+    // --- COLISIONES Y COMBATE MODIFICADO POR ELEMENTOS ---
     onCollide("sword_hitbox", "enemy", (hitbox, enemy) => {
-        golpearEnemigo(enemy, 2); // Espada = 2 de daño (Cuerpo a cuerpo, más riesgo)
+        let danio = 2;
+        if (player.elemento === "fuego") danio = 4;
+        
+        golpearEnemigo(enemy, danio);
+
+        if (player.elemento === "rayo") {
+            get("enemy").forEach((otro) => {
+                if (otro !== enemy && otro.pos.dist(enemy.pos) < 100) {
+                    golpearEnemigo(otro, 2);
+                }
+            });
+        }
     });
 
     onCollide("laser", "enemy", (laser, enemy) => {
         destroy(laser); 
-        golpearEnemigo(enemy, 1); // Láser = 1 de daño (A distancia, más seguro)
+        let danio = 1;
+        if (player.elemento === "fuego") danio = 2;
+        
+        if (player.elemento === "hielo") {
+            enemy.velocidad *= 0.3;
+            wait(3, () => { if (enemy.exists()) enemy.velocidad = 130; });
+        }
+
+        golpearEnemigo(enemy, danio); 
     });
 
     onCollide("enemy", "nucleo", (enemy, nuc) => {
         if (enemy.isSpawning) return;
         destroy(enemy); 
-        nuc.hp -= (enemy.tier === 3) ? 3 : 1; // El Jefe quita 3 vidas de golpe
+        nuc.hp -= (enemy.tier === 3) ? 3 : 1; 
         shake(12); 
         hud.setVidaNucleo(nuc.hp);
         nuc.color = rgb(255, 0, 0); 
@@ -313,5 +402,4 @@ scene("gameover", (resumen) => {
     onKeyPress("r", () => go("game"));
 });
 
-// Arranca el juego cargando el menú primero
 go("menu");
