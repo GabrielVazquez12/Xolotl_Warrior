@@ -11,10 +11,27 @@
         <h1>Xolotl Warrior</h1>
         <p>A/D (move) | SHIFT (Run) | SPACE x2 (Fly) | K (Laser)</p>
     </div>
-    <div id="health-container">
-        <span class="nucleo-hp">Core: <span id="vidas-text">5</span></span>
-        <span class="fantasma-hp">Xolotl: <span id="vida-fantasma">3</span></span>
+
+    <!-- HUD: lo rellena y actualiza js/hud.js. Los ids de aqui son los que
+         ese archivo busca, asi que conviene no renombrarlos a la ligera. -->
+    <div id="hud">
+        <!-- Arriba al centro: como vas -->
+        <div id="hud-marcador">
+            <span class="hud-dato">Tiempo <b id="hud-tiempo">00:00</b></span>
+            <span class="hud-dato">Puntos <b id="hud-puntos">0</b></span>
+            <span class="hud-dato hud-record">Record <b id="hud-record">0</b></span>
+        </div>
+
+        <!-- Arriba a la derecha: cuanta vida queda -->
+        <div id="hud-vidas">
+            <span class="nucleo-hp">Nucleo <b id="hud-vida-nucleo"></b></span>
+            <span class="fantasma-hp">Xolotl <b id="hud-vida-jugador"></b></span>
+        </div>
+
+        <!-- Al centro: aviso pasajero (aparece y se desvanece solo) -->
+        <div id="hud-aviso"></div>
     </div>
+
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
