@@ -2,6 +2,14 @@ import kaboom from "https://unpkg.com/kaboom@3000.0.1/dist/kaboom.mjs";
 import { loadGameAssets } from "./assets.js";
 import { setupPlayer } from "./player.js";
 import { setupEnemies } from "./enemies.js";
+import {
+    startMusic,
+    stopMusic,
+    playEnemyHit,
+    playEnemyDeath,
+    playPlayerHit,
+    playGameOver,
+} from "./audio.js";
 
 kaboom({ background: [ 22, 33, 62 ] });
 loadGameAssets(); // Mandamos llamar al arte
@@ -10,6 +18,9 @@ setGravity(1800);
 const ALTO_PISO = 60;
 
 scene("game", () => {
+
+    startGameMusic();
+
     // 1. Escenario
     add([
         rect(width(), ALTO_PISO), pos(0, height()), anchor("botleft"),
@@ -27,38 +38,91 @@ scene("game", () => {
 
     // 3. Colisiones Globales (Daño y Efectos de Temblor)
     onCollide("sword_hitbox", "enemy", (hitbox, enemy) => {
-        if (enemy.isSpawning) return; 
-        if (enemy.is("zombie")) destroy(enemy); 
-        else { enemy.hp -= 1; if (enemy.hp <= 0) destroy(enemy); }
+
+        if (enemy.isSpawning) return;
+
+        playEnemyHit();
+
+        if (enemy.is("zombie")) {
+            playEnemyDie();
+            destroy(enemy);
+        } else {
+
+            enemy.hp--;
+
+            if (enemy.hp <= 0) {
+                playEnemyDie();
+                destroy(enemy);
+            }
+        }
+
     });
 
     onCollide("laser", "enemy", (laser, enemy) => {
+
         if (enemy.isSpawning) return;
-        destroy(laser); 
-        if (enemy.is("aerial")) destroy(enemy); 
-        else { enemy.hp -= 1; if (enemy.hp <= 0) destroy(enemy); }
+
+        destroy(laser);
+
+        playEnemyHit();
+
+        if (enemy.is("aerial")) {
+
+            playEnemyDie();
+            destroy(enemy);
+
+        } else {
+
+            enemy.hp--;
+
+            if (enemy.hp <= 0) {
+
+                playEnemyDie();
+                destroy(enemy);
+
+            }
+        }
+
     });
 
     onCollide("enemy", "nucleo", (enemy, nuc) => {
         if (enemy.isSpawning) return;
         destroy(enemy); 
         nuc.hp -= 1; 
+        playPlayerHit();
         shake(12); // Pantalla tiembla fuerte
         document.getElementById('vidas-text').innerText = nuc.hp;
         nuc.color = rgb(255, 0, 0); 
         wait(0.2, () => nuc.color = rgb(255, 215, 0)); 
-        if (nuc.hp <= 0) go("gameover"); 
+        if (nuc.hp <= 0) {
+
+            stopGameMusic();
+
+            playGameOver();
+
+            go("gameover");
+
+        }
     });
 
     onCollide("enemy", "player", (enemy, p) => {
         if (enemy.isSpawning || p.isDashing) return; // Ignora el daño si usa el dash
         destroy(enemy); 
         p.hp -= 1; 
+        playPlayerHit();
         shake(6); // Pantalla tiembla leve
         document.getElementById('vida-fantasma').innerText = p.hp; 
         p.use(color(255, 0, 0)); 
         wait(0.2, () => p.unuse("color")); 
-        if (p.hp <= 0) go("gameover"); 
+        if (p.hp <= 0) {
+
+            stopGameMusic();
+
+            playGameOver();
+
+            go("gameover");
+
+        }
     });
 });
 
@@ -74,6 +138,9 @@ scene("gameover", () => {
         document.getElementById('health-container').style.display = 'block';
         document.getElementById('vidas-text').innerText = '5';
         document.getElementById('vida-fantasma').innerText = '3';
+
+        startGameMusic();
+        
         go("game");
     });
 });

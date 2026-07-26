@@ -1,3 +1,9 @@
+import {
+    playSword,
+    playLaser,
+    playDash
+} from "./audio.js";
+
 // Valores constantes para el jugador
 const VEL_NORMAL = 300;
 const VEL_CORRER = 600;
@@ -71,6 +77,7 @@ export function setupPlayer() {
         puedeDashear = false;
         player.isDashing = true;
         player.opacity = 0.5; // Semitransparente
+        playDash();
         
         const impulso = player.direccion === 1 ? VEL_DASH : -VEL_DASH;
         const dashAnim = onUpdate(() => { player.move(impulso, 0); });
@@ -90,6 +97,7 @@ export function setupPlayer() {
     onKeyPress("j", () => {
         if (!player.canAttack) return;
         player.canAttack = false;
+        playSword();
         const offsetX = player.direccion === 1 ? 40 : -40;
         const hitbox = add([ rect(50, 40), pos(player.pos.add(offsetX, 0)), anchor("center"), area(), color(255, 100, 100), "sword_hitbox" ]);
         wait(0.1, () => { destroy(hitbox); });
@@ -99,6 +107,7 @@ export function setupPlayer() {
     onKeyPress("k", () => {
         if (!player.canAttack) return;
         player.canAttack = false;
+        playLaser();
         const offsetX = player.direccion === 1 ? 30 : -30;
         add([ circle(10), pos(player.pos.add(offsetX, 10)), anchor("center"), area(), color(100, 100, 255), move(player.direccion === 1 ? RIGHT : LEFT, VEL_LASER), offscreen({ destroy: true }), "laser" ]);
         resetAttack();
