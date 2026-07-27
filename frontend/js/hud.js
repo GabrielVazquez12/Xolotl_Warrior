@@ -57,14 +57,25 @@ export function setupHUD(hpNucleoMax, hpJugadorMax) {
 
     // Estado de la barra de energía espiritual (0 a 100)
     let energia = 0;
-    const elEnergia = document.getElementById("hud-energia"); // Opcional si lo agregas al HTML
+    const elEnergia = document.getElementById("hud-energia");
+    const elEnergiaRelleno = document.getElementById("hud-energia-relleno");
+    const elEnergiaValor = document.getElementById("hud-energia-valor");
+
+    // Dibuja la barra: el ancho del relleno ES el porcentaje de energía.
+    // La animacion de crecimiento la hace CSS (transition), no este bucle.
+    function pintarEnergia() {
+        if (elEnergiaRelleno) elEnergiaRelleno.style.width = `${energia}%`;
+        if (elEnergiaValor) elEnergiaValor.innerText = `${energia}%`;
+        // .lista pone la barra dorada y latiendo cuando ya se puede usar la ulti
+        if (elEnergia) elEnergia.classList.toggle("lista", energia >= 100);
+    }
 
     elTiempo.innerText = formatearTiempo(0);
     elPuntos.innerText = "0";
     elRecord.innerText = String(record);
     elVidaNucleo.innerText = corazones(hpNucleoMax, hpNucleoMax);
     elVidaJugador.innerText = corazones(hpJugadorMax, hpJugadorMax);
-    if (elEnergia) elEnergia.innerText = "0%";
+    pintarEnergia();
     elAviso.classList.remove("visible");
     mostrar();
 
@@ -103,7 +114,7 @@ export function setupHUD(hpNucleoMax, hpJugadorMax) {
     function cargarEnergia(cantidad) {
         if (energia < 100) {
             energia = Math.min(100, energia + cantidad);
-            if (elEnergia) elEnergia.innerText = `${energia}%`;
+            pintarEnergia();
             if (energia === 100) {
                 avisarOleada("¡⚡ ULTI ESPIRITUAL LISTA! (Presiona E)");
             }
@@ -113,7 +124,7 @@ export function setupHUD(hpNucleoMax, hpJugadorMax) {
     function gastarEnergia() {
         if (energia >= 100) {
             energia = 0;
-            if (elEnergia) elEnergia.innerText = "0%";
+            pintarEnergia();
             return true;
         }
         return false;
