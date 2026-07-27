@@ -4,8 +4,8 @@ import { setupPlayer } from "./player.js";
 import { setupEnemies } from "./enemies.js";
 import { setupHUD, PUNTOS_ZOMBIE, PUNTOS_AEREO } from "./hud.js";
 
-kaboom({ background: [ 22, 33, 62 ] });
-loadGameAssets(); 
+kaboom({ background: [22, 33, 62] });
+loadGameAssets();
 
 setGravity(1800);
 const ALTO_PISO = 60;
@@ -69,7 +69,7 @@ scene("menu", () => {
         scale(1.5),
         anchor("center")
     ]);
-    
+
     xolotlMenu.onUpdate(() => {
         xolotlMenu.pos.y = (centroY - 140) + wave(-10, 10, time() * 2);
     });
@@ -80,7 +80,7 @@ scene("menu", () => {
         anchor("center"),
         color(255, 215, 0)
     ]);
-    
+
     titulo.onUpdate(() => {
         titulo.scale = vec2(wave(1, 1.03, time() * 3));
         titulo.color = rgb(255, wave(180, 215, time() * 4), 0);
@@ -120,7 +120,7 @@ scene("menu", () => {
     ]);
 
     add([
-        text("HackaTec 2026", { size: 16 }),
+        text("Hackathon Kiro + CódigoFacilito · Equipo Orfecalli #98", { size: 16 }),
         pos(centroX, height() - 30),
         anchor("center"),
         color(100, 200, 255),
@@ -202,7 +202,7 @@ scene("shop", () => {
 
             if (skin.costo === 0 || gastarMonedas(skin.costo)) {
                 localStorage.setItem(CLAVE_SKIN, skin.id);
-                go("shop"); 
+                go("shop");
             } else {
                 shake(4);
             }
@@ -230,22 +230,22 @@ scene("game", () => {
         sprite("fondo", { width: width(), height: height() }),
         pos(width() / 2, height() / 2),
         anchor("center"),
-        color(255, 255, 255), 
-        z(-1) 
+        color(255, 255, 255),
+        z(-1)
     ]);
 
     add([
-        rect(width(), ALTO_PISO), 
-        pos(0, height()), 
+        rect(width(), ALTO_PISO),
+        pos(0, height()),
         anchor("botleft"),
-        area(), 
-        body({ isStatic: true }), 
-        opacity(0), 
+        area(),
+        body({ isStatic: true }),
+        opacity(0),
         "ground"
     ]);
 
     const nucleo = add([
-        rect(60, 80), pos(width() / 2, height() - ALTO_PISO), anchor("bot"), 
+        rect(60, 80), pos(width() / 2, height() - ALTO_PISO), anchor("bot"),
         area(), color(255, 215, 0), "nucleo", { hp: 5 }
     ]);
 
@@ -260,9 +260,9 @@ scene("game", () => {
     onUpdate(() => {
         if (window.juegoPausado) return;
         if (enemiesSystem.isLunaDeSangreActiva()) {
-            fondo.color = rgb(255, 100, 100); 
+            fondo.color = rgb(255, 100, 100);
         } else {
-            fondo.color = rgb(255, 255, 255); 
+            fondo.color = rgb(255, 255, 255);
         }
     });
 
@@ -322,14 +322,14 @@ scene("game", () => {
         add([rect(width(), height()), pos(0, 0), color(0, 255, 255), opacity(0.8), fixed(), z(200), lifespan(0.3, { fade: 0.3 })]);
 
         const playerObj = get("player")[0];
-        const centroOnda = playerObj ? playerObj.pos : vec2(width()/2, height()/2);
+        const centroOnda = playerObj ? playerObj.pos : vec2(width() / 2, height() / 2);
         const onda = add([circle(10), pos(centroOnda), anchor("center"), color(255, 215, 0), opacity(0.6), area(), z(199), "ulti-wave"]);
 
         tween(10, Math.max(width(), height()) * 1.5, 0.4, (r) => onda.radius = r, easings.easeOutQuad).onEnd(() => destroy(onda));
 
         get("enemy").forEach((enemy) => {
             if (enemy.isSpawning) return;
-            if (enemy.tier === 3) golpearEnemigo(enemy, 8); 
+            if (enemy.tier === 3) golpearEnemigo(enemy, 8);
             else matarEnemigo(enemy);
         });
     });
@@ -337,10 +337,10 @@ scene("game", () => {
     function matarEnemigo(enemy) {
         const basePuntos = enemy.is("zombie") ? PUNTOS_ZOMBIE : PUNTOS_AEREO;
         const puntosFinales = basePuntos * (enemiesSystem.isLunaDeSangreActiva() ? 2 : 1);
-        
+
         hud.contarEnemigo(puntosFinales);
         hud.cargarEnergia(25);
-        
+
         enemiesSystem.soltarPowerUp(enemy.pos);
         enemiesSystem.soltarMoneda(enemy.pos);
         destroy(enemy);
@@ -355,10 +355,10 @@ scene("game", () => {
         wait(0.1, () => { if (enemy.exists()) enemy.color = colorOriginal; });
 
         if (enemy.tier !== 3) {
-            enemy.isKnockedBack = true; 
+            enemy.isKnockedBack = true;
             const centroNucleo = vec2(width() / 2, height() - ALTO_PISO);
             const direccionAlejamiento = enemy.pos.sub(centroNucleo).unit();
-            
+
             tween(enemy.pos, enemy.pos.add(direccionAlejamiento.scale(40)), 0.15, (p) => enemy.pos = p, easings.easeOutQuad)
                 .onEnd(() => { if (enemy.exists()) enemy.isKnockedBack = false; });
         }
@@ -384,35 +384,35 @@ scene("game", () => {
     });
 
     onCollide("laser", "enemy", (laser, enemy) => {
-        destroy(laser); 
+        destroy(laser);
         let danio = 1;
         if (player.elemento === "fuego") danio = 2;
         if (player.elemento === "hielo") {
             enemy.velocidad *= 0.3;
             wait(3, () => { if (enemy.exists()) enemy.velocidad = 130; });
         }
-        golpearEnemigo(enemy, danio); 
+        golpearEnemigo(enemy, danio);
     });
 
     onCollide("enemy", "nucleo", (enemy, nuc) => {
         if (enemy.isSpawning) return;
-        destroy(enemy); 
-        nuc.hp -= (enemy.tier === 3) ? 3 : 1; 
-        shake(12); 
+        destroy(enemy);
+        nuc.hp -= (enemy.tier === 3) ? 3 : 1;
+        shake(12);
         hud.setVidaNucleo(nuc.hp);
-        nuc.color = rgb(255, 0, 0); 
-        wait(0.2, () => nuc.color = rgb(255, 215, 0)); 
-        if (nuc.hp <= 0) terminar(); 
+        nuc.color = rgb(255, 0, 0);
+        wait(0.2, () => nuc.color = rgb(255, 215, 0));
+        if (nuc.hp <= 0) terminar();
     });
 
     onCollide("enemy", "player", (enemy, p) => {
-        if (enemy.isSpawning || p.isDashing) return; 
-        destroy(enemy); 
-        p.hp -= 1; 
-        shake(6); 
+        if (enemy.isSpawning || p.isDashing) return;
+        destroy(enemy);
+        p.hp -= 1;
+        shake(6);
         hud.setVidaJugador(p.hp);
-        if (p.hp <= 0) p.morir(() => terminar()); 
-        else p.recibirDanio(); 
+        if (p.hp <= 0) p.morir(() => terminar());
+        else p.recibirDanio();
     });
 });
 
@@ -423,9 +423,9 @@ scene("gameover", (resumen) => {
     const centroX = width() / 2;
     const centroY = height() / 2;
 
-    add([ text("FIN DEL JUEGO", { size: 48 }), pos(centroX, centroY - 180), anchor("center"), color(255, 50, 50) ]);
-    add([ text(`Tiempo: ${resumen.tiempo}    Enemigos: ${resumen.enemigos}`, { size: 20 }), pos(centroX, centroY - 120), anchor("center"), color(180, 180, 180) ]);
-    add([ text(`PUNTOS: ${resumen.puntos}`, { size: 32 }), pos(centroX, centroY - 80), anchor("center"), color(255, 215, 0) ]);
+    add([text("FIN DEL JUEGO", { size: 48 }), pos(centroX, centroY - 180), anchor("center"), color(255, 50, 50)]);
+    add([text(`Tiempo: ${resumen.tiempo}    Enemigos: ${resumen.enemigos}`, { size: 20 }), pos(centroX, centroY - 120), anchor("center"), color(180, 180, 180)]);
+    add([text(`PUNTOS: ${resumen.puntos}`, { size: 32 }), pos(centroX, centroY - 80), anchor("center"), color(255, 215, 0)]);
 
     // Input visual para iniciales estilo arcade
     let iniciales = "AAA";
@@ -439,7 +439,7 @@ scene("gameover", (resumen) => {
         color(0, 255, 255)
     ]);
 
-    add([ text("Usa ARRIBA/ABAJO para cambiar letra, IZQ/DER para mover, ENTER para guardar", { size: 14 }), pos(centroX, centroY + 10), anchor("center"), color(150, 150, 150) ]);
+    add([text("Usa ARRIBA/ABAJO para cambiar letra, IZQ/DER para mover, ENTER para guardar", { size: 14 }), pos(centroX, centroY + 10), anchor("center"), color(150, 150, 150)]);
 
     // Control de selección de iniciales
     onKeyPress("up", () => {
@@ -492,7 +492,7 @@ scene("gameover", (resumen) => {
         }
     });
 
-    add([ text("Presiona R para reiniciar la partida", { size: 20 }), pos(centroX, height() - 50), anchor("center"), color(255, 255, 255) ]);
+    add([text("Presiona R para reiniciar la partida", { size: 20 }), pos(centroX, height() - 50), anchor("center"), color(255, 255, 255)]);
 
     onKeyPress("r", () => go("game"));
 });
