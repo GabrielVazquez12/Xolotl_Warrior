@@ -45,6 +45,7 @@ p {
     pointer-events: none;  /* los clics pasan de largo hacia el juego */
     color: white;
     text-shadow: 2px 2px 0px #000;
+    display: none;         /* oculto hasta que empieza la partida; js/hud.js lo muestra */
 }
 
 /* --- Marcador: tiempo, puntos y record, arriba al centro --- */
@@ -103,6 +104,66 @@ p {
 
 .fantasma-hp b {
     color: #00ffff;
+}
+
+/* --- Barra de energia de la Ulti, arriba al centro ---
+   Va debajo del marcador: abajo al centro estorbaria, porque ahi estan
+   parados el Nucleo y Xolotl.
+   js/hud.js solo cambia el ancho del relleno y pone/quita .lista. */
+#hud-energia {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%); /* centrado de verdad, aunque cambie de ancho */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #aaa;
+}
+
+.energia-barra {
+    width: 220px;
+    height: 14px;
+    border: 2px solid #00ffff;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    overflow: hidden; /* el relleno no se sale de las esquinas redondeadas */
+}
+
+#hud-energia-relleno {
+    width: 0%; /* lo unico que toca js/hud.js */
+    height: 100%;
+    background: #00ffff;
+    transition: width 0.25s ease; /* la subida la anima el navegador, no el JS */
+}
+
+#hud-energia-valor {
+    font-size: 16px;
+    color: #fff;
+    min-width: 46px;  /* asi la barra no brinca al pasar de 75% a 100% */
+    text-align: left;
+}
+
+/* Al llegar a 100% se vuelve dorada y late: la ulti ya se puede usar */
+#hud-energia.lista .energia-barra {
+    border-color: #ffd700;
+}
+
+#hud-energia.lista #hud-energia-relleno {
+    background: #ffd700;
+    animation: latido-ulti 0.8s ease-in-out infinite;
+}
+
+#hud-energia.lista #hud-energia-valor {
+    color: #ffd700;
+}
+
+@keyframes latido-ulti {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
 }
 
 /* --- Aviso pasajero al centro (ej. "Oleada mas rapida") --- */
