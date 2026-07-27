@@ -3,6 +3,13 @@ import { loadGameAssets } from "./assets.js";
 import { setupPlayer } from "./player.js";
 import { setupEnemies } from "./enemies.js";
 import { setupHUD, PUNTOS_ZOMBIE, PUNTOS_AEREO } from "./hud.js";
+import {
+    startGameMusic,
+    stopGameMusic,
+    pausarGameMusic,
+    playEnemyHit,
+    playEnemyDie
+} from "./audio.js";
 
 kaboom({ background: [22, 33, 62] });
 loadGameAssets();
@@ -226,6 +233,8 @@ scene("shop", () => {
 // ESCENA: JUEGO PRINCIPAL
 // ===============================================================
 scene("game", () => {
+    startGameMusic();
+
     const fondo = add([
         sprite("fondo", { width: width(), height: height() }),
         pos(width() / 2, height() / 2),
@@ -300,6 +309,7 @@ scene("game", () => {
     onKeyPress("escape", () => {
         pausado = !pausado;
         window.juegoPausado = pausado;
+        pausarGameMusic(pausado);
         if (pausado) {
             add([rect(width(), height()), pos(0, 0), color(0, 0, 0), opacity(0.6), fixed(), z(100), "pause-ui"]);
             add([text("JUEGO PAUSADO", { size: 48 }), pos(width() / 2, height() / 2 - 40), anchor("center"), color(255, 215, 0), fixed(), z(101), "pause-ui"]);
@@ -309,7 +319,11 @@ scene("game", () => {
         }
     });
 
-    onKeyPress("m", () => { if (pausado) go("menu"); });
+    onKeyPress("m", () => {
+        if (!pausado) return;
+        stopGameMusic();
+        go("menu");
+    });
 
     onKeyPress("e", () => {
         if (window.juegoPausado) return;
@@ -338,6 +352,7 @@ scene("game", () => {
         const basePuntos = enemy.is("zombie") ? PUNTOS_ZOMBIE : PUNTOS_AEREO;
         const puntosFinales = basePuntos * (enemiesSystem.isLunaDeSangreActiva() ? 2 : 1);
 
+        playEnemyDie();
         hud.contarEnemigo(puntosFinales);
         hud.cargarEnergia(25);
 
@@ -349,6 +364,9 @@ scene("game", () => {
     function golpearEnemigo(enemy, danio) {
         if (enemy.isSpawning) return;
         enemy.hp -= danio;
+
+        // Si el golpe lo mata, matarEnemigo() ya suena; no encimamos los dos.
+        if (enemy.hp > 0) playEnemyHit();
 
         const colorOriginal = enemy.color;
         enemy.color = rgb(255, 255, 255);
@@ -367,6 +385,7 @@ scene("game", () => {
     }
 
     function terminar() {
+        stopGameMusic();
         const resumen = hud.terminarPartida();
         hud.ocultar();
         go("gameover", resumen);

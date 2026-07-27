@@ -1,8 +1,8 @@
-//import {
-  //  playSword,
-    //playLaser,
-    //playDash
-//} from "./audio.js";
+import {
+    playSword,
+    playLaser,
+    playDash
+} from "./audio.js";
 
 // Valores constantes para el jugador
 const VEL_NORMAL = 300;
@@ -17,7 +17,7 @@ export function setupPlayer() {
         pos(width() / 2 - 200, height() - 160),
         scale(0.8),
         anchor("center"),
-        area({ shape: new Rect(vec2(0,0), 20, 25) }),
+        area({ shape: new Rect(vec2(0, 0), 20, 25) }),
         body(),
         "player",
         {
@@ -26,7 +26,7 @@ export function setupPlayer() {
             hp: 3,
             isFlying: false,
             isDashing: false,
-            
+
             recibirDanio() {
                 this.play("hit");
             },
@@ -43,7 +43,7 @@ export function setupPlayer() {
     ]);
 
     function getVelocidadActual() { return isKeyDown("shift") ? VEL_CORRER : VEL_NORMAL; }
-    
+
     function iniciarAnimacionCorrer() {
         if (player.curAnim() !== "walk" && player.curAnim() !== "melee" && player.curAnim() !== "shoot" && player.curAnim() !== "hit") {
             player.play("walk");
@@ -59,7 +59,7 @@ export function setupPlayer() {
         if (window.juegoPausado) return;
         player.move(-getVelocidadActual(), 0); player.direccion = -1; player.flipX = true; iniciarAnimacionCorrer();
     });
-    
+
     onKeyDown("right", () => {
         if (window.juegoPausado) return;
         player.move(getVelocidadActual(), 0); player.direccion = 1; player.flipX = false; iniciarAnimacionCorrer();
@@ -91,7 +91,7 @@ export function setupPlayer() {
         } else if (!player.isFlying) {
             player.isFlying = true;
             player.gravityScale = 0;
-            player.jump(0.1); 
+            player.jump(0.1);
         }
     });
 
@@ -108,9 +108,9 @@ export function setupPlayer() {
         puedeDashear = false;
         player.isDashing = true;
         player.opacity = 0.5; // Semitransparente
-        //playDash();
-        player.opacity = 0.5; 
-        
+        playDash();
+        player.opacity = 0.5;
+
         const impulso = player.direccion === 1 ? VEL_DASH : -VEL_DASH;
         const dashAnim = onUpdate(() => {
             if (window.juegoPausado) return;
@@ -123,7 +123,7 @@ export function setupPlayer() {
             player.opacity = 1;
         });
 
-        wait(1, () => { puedeDashear = true; }); 
+        wait(1, () => { puedeDashear = true; });
     });
 
     // Combate con candado de pausa
@@ -133,10 +133,10 @@ export function setupPlayer() {
         if (window.juegoPausado) return;
         if (!player.canAttack || player.isDashing) return;
         player.canAttack = false;
-        //playSword();
+        playSword();
         player.play("melee");
         const offsetX = player.direccion === 1 ? 40 : -40;
-        const hitbox = add([ rect(50, 40), pos(player.pos.add(offsetX, 0)), anchor("center"), area(), color(255, 100, 100), "sword_hitbox" ]);
+        const hitbox = add([rect(50, 40), pos(player.pos.add(offsetX, 0)), anchor("center"), area(), color(255, 100, 100), "sword_hitbox"]);
         wait(0.1, () => { destroy(hitbox); });
         resetAttack();
     });
@@ -145,10 +145,10 @@ export function setupPlayer() {
         if (window.juegoPausado) return;
         if (!player.canAttack || player.isDashing) return;
         player.canAttack = false;
-        //playLaser();
+        playLaser();
         player.play("shoot");
         const offsetX = player.direccion === 1 ? 30 : -30;
-        add([ circle(10), pos(player.pos.add(offsetX, 10)), anchor("center"), area(), color(100, 100, 255), move(player.direccion === 1 ? RIGHT : LEFT, VEL_LASER), offscreen({ destroy: true }), "laser" ]);
+        add([circle(10), pos(player.pos.add(offsetX, 10)), anchor("center"), area(), color(100, 100, 255), move(player.direccion === 1 ? RIGHT : LEFT, VEL_LASER), offscreen({ destroy: true }), "laser"]);
         resetAttack();
     });
 
