@@ -30,7 +30,7 @@ export function startGameMusic() {
 
     gameMusic = play("gameMusic", {
         loop: true,
-        volume: 0.35,
+        volume: 0.50,
     });
 }
 
@@ -48,15 +48,15 @@ export function pausarGameMusic(pausado) {
 }
 
 export function playSword() {
-    playEfecto("sword", 0.7);
+    playEfecto("sword", 0.5);
 }
 
 export function playLaser() {
-    playEfecto("laserSound", 0.6);
+    playEfecto("laserSound", 0.5);
 }
 
 export function playDash() {
-    playEfecto("dash", 0.6);
+    playEfecto("dash", 0.5);
 }
 
 export function playEnemyHit() {
@@ -64,7 +64,7 @@ export function playEnemyHit() {
 }
 
 export function playEnemyDie() {
-    playEfecto("enemyDie", 0.7);
+    playEfecto("enemyDie", 0.5);
 }
 
 // Pendientes: faltan los archivos player_hit.wav y gameover.wav en assets/sounds.
